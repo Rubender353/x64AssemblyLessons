@@ -1,4 +1,5 @@
-[Lesson 1 Link](https://rubender353.github.io/x64AssemblyLessons/index.md#lesson-1)
+[Lesson 1 Link](#lesson-1)
+[Lesson 2 Link](#lesson-2)
 ## Lesson 1
 
 Hello, world!
@@ -58,6 +59,9 @@ Hello World!
 Segmentation fault
 ```
 
+## Lesson 2
+```
+```
 ```markdown
 Syntax highlighted code block
 
