@@ -1,4 +1,4 @@
-[Lesson 1 Link](https://github.com/Rubender353/x64AssemblyLessons/edit/gh-pages/index.md#lesson-1)
+[Lesson 1 Link](https://rubender353.github.io/x64AssemblyLessons/index.md#lesson-1)
 ## Lesson 1
 
 Hello, world!
