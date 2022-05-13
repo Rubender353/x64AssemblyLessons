@@ -129,7 +129,7 @@ sys_exit has a simple function definition. In the Linux System Call Table it is 
 In order to execute this function all we need to do is:
 
 Load RDI with 0 to pass zero to the function meaning 'zero errors'.
-Load EAX with 60 to call sys_exit.
+Load RAX with 60 to call sys_exit.
 Then request an interrupt on libc using syscall.
 We then compile, link and run it again.
 
