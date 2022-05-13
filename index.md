@@ -1,15 +1,39 @@
-[Lesson 1 Link](#lesson-1)
-[Lesson 2 Link](#lesson-2)
-[Lesson 2 Link](#lesson-2)
-[Lesson 2 Link](#lesson-2)
-[Lesson 2 Link](#lesson-2)
-[Lesson 2 Link](#lesson-2)
-[Lesson 2 Link](#lesson-2)
-[Lesson 2 Link](#lesson-2)
-[Lesson 2 Link](#lesson-2)
-[Lesson 2 Link](#lesson-2)
-[Lesson 2 Link](#lesson-2)
-[Lesson 2 Link](#lesson-2)
+[Lesson 1](#lesson-1) <b>Hello, world!</b>
+[Lesson 2](#lesson-2) <b>Proper program exit</b>
+[Lesson 3](#lesson-3) <b>Calculate string length</b>
+[Lesson 4](#lesson-4) <b>Subroutines</b>
+[Lesson 5](#lesson-5) <b>External include files</b>
+[Lesson 6](#lesson-6) <b>NULL terminating bytes</b>
+[Lesson 7](#lesson-7) <b>Linefeeds</b>
+[Lesson 8](#lesson-8) <b>Passing arguments</b>
+[Lesson 9](#lesson-9) <b>User input</b>
+[Lesson 10](#lesson-10) <b>Count to 10</b>
+[Lesson 11](#lesson-11) <b>Count to 10 (itoa)</b>
+[Lesson 12](#lesson-12) <b>Calculator - addition</b>
+[Lesson 13](#lesson-13) <b>Calculator - subtraction</b>
+[Lesson 14](#lesson-14) <b>Calculator - multiplication</b>
+[Lesson 15](#lesson-15) <b>Calculator - division</b>
+[Lesson 16](#lesson-16) <b>Calculator (atoi)</b>
+[Lesson 17](#lesson-17) <b>Namespace</b>
+[Lesson 18](#lesson-18) <b>Fizz Buzz</b>
+[Lesson 19](#lesson-19) <b>Execute Command</b>
+[Lesson 20](#lesson-20) <b>Process Forking</b>
+[Lesson 21](#lesson-21) <b>Telling the time</b>
+[Lesson 22](#lesson-22) <b>File Handling - Create</b>
+[Lesson 23](#lesson-23) <b>File Handling - Write</b>
+[Lesson 24](#lesson-24) <b>File Handling - Open</b>
+[Lesson 25](#lesson-25) <b>File Handling - Read</b>
+[Lesson 26](#lesson-26) <b>File Handling - Close</b>
+[Lesson 27](#lesson-27) <b>File Handling - Update</b>
+[Lesson 28](#lesson-28) <b>File Handling - Delete</b>
+[Lesson 29](#lesson-29) <b>Sockets - Create</b>
+[Lesson 30](#lesson-30) <b>Sockets - Bind</b>
+[Lesson 31](#lesson-31) <b>Sockets - Listen</b>
+[Lesson 32](#lesson-32) <b>Sockets - Accept</b>
+[Lesson 33](#lesson-33) <b>Sockets - Read</b>
+[Lesson 34](#lesson-34) <b>Sockets - Write</b>
+[Lesson 35](#lesson-35) <b>Sockets - Close</b>
+[Lesson 36](#lesson-36) <b>Download a Webpage</b>
 
 ## Lesson 1
 
