@@ -58,15 +58,28 @@ The biggest difference from 32-bit is that after RAX 6 registers get used sequen
 
 Keep in mind I will be using Linux specifically Ubuntu. Depending on your architecture and ABI used these may be called differently. So if using nasm for some other device refer to their documentation, calling tables, and ABI info.
 
-Register	Value
-RAX	System call number
-RDI	1st argument
-RSI	2nd argument
-RDX	3rd argument
-RCX	4th argument
-R8	5th argument
-R9	6th argument
-
+<table>
+ <tr>
+  Register	
+  RAX
+  RDI
+  RSI
+  RDX
+  RCX
+  R8	
+  R9
+ </tr>
+ <tr>
+ Value
+ System call number
+	1st argument
+	2nd argument
+	3rd argument
+	4th argument
+ 5th argument
+ 6th argument
+ </tr>
+</table>
 Writing our program
 Firstly we create a variable 'msg' in our .data section and assign it the string we want to output in this case 'Hello, world!'. In our .text section we tell the kernel where to begin execution by providing it with a global label _start: to denote the programs entry point.
 
