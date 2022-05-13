@@ -49,9 +49,9 @@ When you invoke a system call the kernel will immediately suspend execution of y
 
 Note: Drivers are called drivers because the kernel literally uses them to drive the hardware.
 
-We can accomplish this all in assembly by loading EAX with the function number (operation code OPCODE) we want to execute and filling the remaining registers with the arguments we want to pass to the system call. A software interrupt is requested with the INT instruction and the kernel takes over and calls the function from the library with our arguments. Simple.
+We can accomplish this all in assembly by loading RAX (EAX in x86 32-bit) with the function number (operation code OPCODE) we want to execute and filling the remaining registers with the arguments we want to pass to the system call. A software interrupt is requested with the INT instruction and the kernel takes over and calls the function from the library with our arguments. Simple.
 
-For example requesting an interrupt when EAX=1 will call sys_exit and requesting an interrupt when EAX=4 will call sys_write instead. EBX, ECX & EDX will be passed as arguments if the function requires them. Click here to view an example of a Linux System Call Table and its corresponding OPCODES.
+For example requesting an interrupt when RAX=1 will call sys_exit and requesting an interrupt when RAX=4 will call sys_write instead. EBX, ECX & EDX will be passed as arguments if the function requires them. Click here to view an example of a Linux System Call Table and its corresponding OPCODES.
 
 Writing our program
 Firstly we create a variable 'msg' in our .data section and assign it the string we want to output in this case 'Hello, world!'. In our .text section we tell the kernel where to begin execution by providing it with a global label _start: to denote the programs entry point.
