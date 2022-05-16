@@ -214,10 +214,51 @@ To calculate the length of the string we will use a technique called pointer ari
 The CMP instruction compares the left hand side against the right hand side and sets a number of flags that are used for program flow. The flag we're checking is the ZF or Zero Flag. When the byte that EAX points to is equal to zero the ZF flag is set. We then use the JZ instruction to jump, if the ZF flag is set, to the point in our program labeled 'finished'. This is to break out of the nextchar loop and continue executing the rest of the program.
 
 ```
+; Hello World Program (Calculating string length)
+; Compile with: nasm -f elf64 helloworld-len64.asm
+; Link with : ld -m elf_x86_64 helloworld-len64.o -o helloworld-len64
+; Run with: ./helloworld-len
+
+SECTION .data
+msg     db      'Hello, brave new world!', 0Ah ; we can modify this now without having to update anywhere else in the program
+ 
+SECTION .text
+global  _start
+ 
+_start:
+ 
+    mov     rdi, msg        ; move the address of our message string into RDI
+    mov     rax, rdi        ; move the address in RDI into RAX as well (Both now point to the same segment in memory)
+ 
+nextchar:
+    cmp     byte [rax], 0   ; compare the byte pointed to by RAX at this address against zero (Zero is an end of string delimiter)
+    jz      finished        ; jump (if the zero flagged has been set) to the point in the code labeled 'finished'
+    inc     rax             ; increment the address in RAX by one byte (if the zero flagged has NOT been set)
+    jmp     nextchar        ; jump to the point in the code labeled 'nextchar'
+ 
+finished:
+    sub     rax, rdi        ; subtract the address in RDI from the address in RAX
+                            ; remember both registers started pointing to the same address (see line 15)
+                            ; but RAX has been incremented one byte for each character in the message string
+                            ; when you subtract one memory address from another of the same type
+                            ; the result is number of segments between them - in this case the number of bytes
+ 
+    mov     rdx, rax        ; RAX now equals the number of bytes in our string
+    mov     rsi, msg        ; the rest of the code should be familiar now
+    mov     rdi, 1
+    mov     rax, 1
+    syscall
+ 
+    mov     rdi, 0
+    mov     rax, 60
+    syscall
 
 ```
 ```
-
+nasm -f elf64 helloworld-len64.asm
+ld -m elf_x86_64 helloworld-len64.o -o helloworld-len64
+./helloworld-len64
+Hello, brave new world!
 ```
 
 
