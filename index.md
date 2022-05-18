@@ -260,7 +260,8 @@ ld -m elf_x86_64 helloworld-len64.o -o helloworld-len64
 ./helloworld-len64
 Hello, brave new world!
 ```
-## Lesson 4 Subroutines
+## Lesson 4 
+Subroutines
 
 Introduction to subroutines
 
@@ -326,7 +327,8 @@ ld -m elf_x86_64 helloworld-len64.o -o helloworld-len64
 ./helloworld-len64
 Hello, brave new world!
 ```
-## Lesson 5 External include files
+## Lesson 5 
+External include files
 
 External include files allow us to move code from our program and put it into separate files. This technique is useful for writing clean, easy to maintain programs. Reusable bits of code can be written as subroutines and stored in separate files called libraries. When you need a piece of logic you can include the file in your program and use it as if they are part of the same file.
 
@@ -426,7 +428,11 @@ This is how we recycle in NASM.
 Error: Our second message is outputted twice. This is fixed in the next lesson. 
 ```
 
-## Lesson 6 NULL terminating bytes
+## Lesson 6 
+NULL terminating bytes
+
+## Lesson 7
+Linefeeds
 
 
 ```markdown
