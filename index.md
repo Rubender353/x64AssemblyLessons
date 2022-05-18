@@ -326,7 +326,107 @@ ld -m elf_x86_64 helloworld-len64.o -o helloworld-len64
 ./helloworld-len64
 Hello, brave new world!
 ```
+## Lesson 5 External include files
 
+External include files allow us to move code from our program and put it into separate files. This technique is useful for writing clean, easy to maintain programs. Reusable bits of code can be written as subroutines and stored in separate files called libraries. When you need a piece of logic you can include the file in your program and use it as if they are part of the same file.
+
+In this lesson we will move our string length calculating subroutine into an external file. We fill also make our string printing logic and program exit logic a subroutine and we will move them into this external file. Once it's completed our actual program will be clean and easier to read.
+
+We can then declare another message variable and call our print function twice in order to demonstrate how we can reuse code.
+
+Note: I won't be showing the code in functions.asm after this lesson unless it changes. It will just be included if needed. 
+
+functions.asm
+```
+;------------------------------------------
+; int slen(String message)
+; String length calculation function
+slen:
+    push    rdi
+    mov     rdi, rax
+ 
+nextchar:
+    cmp     byte [rax], 0
+    jz      finished
+    inc     rax
+    jmp     nextchar
+ 
+finished:
+    sub     rax, rdi
+    pop     rdi
+    ret
+ 
+ 
+;------------------------------------------
+; void sprint(String message)
+; String printing function
+sprint:
+    push    rdx
+    push    rsi
+    push    rdi
+    push    rax
+    call    slen
+ 
+    mov     rdx, rax
+    pop     rax
+ 
+    mov     rsi, rax
+    mov     rdi, 1
+    mov     rax, 1
+    syscall
+ 
+    pop     rdi
+    pop     rsi
+    pop     rdx
+    ret
+ 
+ 
+;------------------------------------------
+; void exit()
+; Exit program and restore resources
+quit:
+    mov     rdi, 0
+    mov     rax, 60
+    syscall
+    ret
+```
+helloworld-inc64.asm
+```
+; Hello World Program (External file include)
+; Compile with: nasm -f elf64 helloworld-inc64.asm
+; Link with: ld -m elf_x86_64 helloworld-inc64.o -o helloworld-inc64
+; Run with: ./helloworld-inc64
+ 
+%include        'functions.asm'                             ; include our external file
+ 
+SECTION .data
+msg1    db      'Hello, brave new world!', 0Ah              ; our first message string
+msg2    db      'This is how we recycle in NASM.', 0Ah      ; our second message string
+ 
+SECTION .text
+global  _start
+ 
+_start:
+ 
+    mov     rax, msg1       ; move the address of our first message string into EAX
+    call    sprint          ; call our string printing function
+ 
+    mov     rax, msg2       ; move the address of our second message string into EAX
+    call    sprint          ; call our string printing function
+ 
+    call    quit            ; call our quit function
+```
+```
+asm -f elf64 helloworld-inc64.asm
+ld -m elf_x86_64 helloworld-inc64.o -o helloworld-inc64
+./helloworld-inc64
+Hello, brave new world!
+This is how we recycle in NASM.
+This is how we recycle in NASM.
+Error: Our second message is outputted twice. This is fixed in the next lesson. 
+```
+
+## Lesson 6 NULL terminating bytes
 
 
 ```markdown
