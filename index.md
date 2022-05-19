@@ -430,7 +430,46 @@ Error: Our second message is outputted twice. This is fixed in the next lesson.
 
 ## Lesson 6 
 NULL terminating bytes
+Ok so why did our second message print twice when we only called our sprint function on msg2 once? Well actually it did only print once. You can see what I mean if you comment out our second call to sprint. The output will be both of our message strings.
 
+But how is this possible?
+
+What is happening is we weren't properly terminating our strings. In assembly, variables are stored one after another in memory so the last byte of our msg1 variable is right next to the first byte of our msg2 variable. We know our string length calculation is looking for a zero byte so unless our msg2 variable starts with a zero byte it keeps counting as if it's the same string (and as far as assembly is concerned it is the same string). So we need to put a zero byte or 0h after our strings to let assembly know where to stop counting.
+
+Note: In programming 0h denotes a null byte and a null byte after a string tells assembly where it ends in memory. 
+
+```
+; Hello World Program (External file include)
+; Compile with: nasm -f elf64 helloworld-inc64.asm
+; Link with: ld -m elf_x86_64 helloworld-inc64.o -o helloworld-inc64
+; Run with: ./helloworld-inc64
+ 
+%include        'functions.asm'
+ 
+SECTION .data
+msg1    db      'Hello, brave new world!', 0Ah, 0h          ; NOTE the null terminating byte
+msg2    db      'This is how we recycle in NASM.', 0Ah, 0h  ; NOTE the null terminating byte
+ 
+SECTION .text
+global  _start
+ 
+_start:
+ 
+    mov     rax, msg1
+    call    sprint
+ 
+    mov     rax, msg2
+    call    sprint
+ 
+    call    quit
+```
+```
+~$ nasm -f elf64 helloworld-inc64.asm
+~$ ld -m elf_x86_64 helloworld-inc64.o -o helloworld-inc64
+~$ ./helloworld-inc64                                     
+Hello, brave new world!
+This is how we recycle in NASM.
+```
 ## Lesson 7
 Linefeeds
 
