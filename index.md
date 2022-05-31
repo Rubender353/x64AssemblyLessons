@@ -410,16 +410,16 @@ global  _start
  
 _start:
  
-    mov     rax, msg1       ; move the address of our first message string into EAX
+    mov     rax, msg1       ; move the address of our first message string into RAX
     call    sprint          ; call our string printing function
  
-    mov     rax, msg2       ; move the address of our second message string into EAX
+    mov     rax, msg2       ; move the address of our second message string into RAX
     call    sprint          ; call our string printing function
  
     call    quit            ; call our quit function
 ```
 ```
-asm -f elf64 helloworld-inc64.asm
+nasm -f elf64 helloworld-inc64.asm
 ld -m elf_x86_64 helloworld-inc64.o -o helloworld-inc64
 ./helloworld-inc64
 Hello, brave new world!
@@ -473,6 +473,115 @@ This is how we recycle in NASM.
 ## Lesson 7
 Linefeeds
 
+Linefeeds are essential to console programs like our 'hello world' program. They become even more important once we start building programs that require user input. But linefeeds can be a pain to maintain. Sometimes you will want to include them in your strings and sometimes you will want to remove them. If we continue to hard code them in our variables by adding 0Ah after our declared message text, it will become a problem. If there's a place in the code that we don't want to print out the linefeed for that variable we will need to write some extra logic remove it from the string at runtime.
+
+It would be better for the maintainability of our program if we write a subroutine that will print out our message and then print a linefeed afterwards. That way we can just call this subroutine when we need the linefeed and call our current sprint subroutine when we don't.
+
+A call to sys_write requires we pass a pointer to an address in memory of the string we want to print so we can't just pass a linefeed character (0Ah) to our print function. We also don't want to create another variable just to hold a linefeed character so we will instead use the stack.
+
+The way it works is by moving a linefeed character into RAX. We then push RAX onto the stack and get the address pointed to by the Extended Stack Pointer. RSP is another register. When you push items onto the stack, RSP is decremented to point to the address in memory of the last item and so it can be used to access that item directly from the stack. Since RSP points to an address in memory of a character, sys_write will be able to use it to print.
+
+functions.asm
+```
+;------------------------------------------
+; int slen(String message)
+; String length calculation function
+slen:
+    push    rdi
+    mov     rdi, rax
+ 
+nextchar:
+    cmp     byte [rax], 0
+    jz      finished
+    inc     rax
+    jmp     nextchar
+ 
+finished:
+    sub     rax, rdi
+    pop     rdi
+    ret
+ 
+ 
+;------------------------------------------
+; void sprint(String message)
+; String printing function
+sprint:
+    push    rdx
+    push    rsi
+    push    rdi
+    push    rax
+    call    slen
+ 
+    mov     rdx, rax
+    pop     rax
+ 
+    mov     rsi, rax
+    mov     rdi, 1
+    mov     rax, 1
+    syscall
+ 
+    pop     rdi
+    pop     rsi
+    pop     rdx
+    ret
+ 
+;------------------------------------------
+; void sprintLF(String message)
+; String printing with line feed function
+sprintLF:
+    call    sprint
+ 
+    push    rax         ; push eax onto the stack to preserve it while we use the eax register in this function
+    mov     rax, 0Ah    ; move 0Ah into eax - 0Ah is the ascii character for a linefeed
+    push    rax         ; push the linefeed onto the stack so we can get the address
+    mov     rax, rsp    ; move the address of the current stack pointer into eax for sprint
+    call    sprint      ; call our sprint function
+    pop     rax         ; remove our linefeed character from the stack
+    pop     rax         ; restore the original value of eax before our function was called
+    ret                 ; return to our program
+
+;------------------------------------------
+; void exit()
+; Exit program and restore resources
+quit:
+    mov     rdi, 0
+    mov     rax, 60
+    syscall
+    ret
+```
+helloworld-inc64.asm
+```
+; Hello World Program (External file include)
+; Compile with: nasm -f elf64 helloworld-inc64.asm
+; Link with: ld -m elf_x86_64 helloworld-inc64.o -o helloworld-inc64
+; Run with: ./helloworld-inc64
+ 
+%include        'functions.asm'
+ 
+SECTION .data
+msg1    db      'Hello, brave new world!', 0h              ; NOTE we have removed the line feed character 0Ah
+msg2    db      'This is how we recycle in NASM.', 0h      ; NOTE we have removed the line feed character 0Ah
+ 
+SECTION .text
+global  _start
+ 
+_start:
+ 
+    mov     rax, msg1
+    call    sprintLF         ; NOTE we are calling our new print with linefeed function
+ 
+    mov     rax, msg2
+    call    sprintLF         ; NOTE we are calling our new print with linefeed function
+ 
+    call    quit
+```
+```
+nasm -f elf64 helloworld-inc64.asm
+ld -m elf_x86_64 helloworld-inc64.o -o helloworld-inc64
+./helloworld-inc64
+Hello, brave new world!
+This is how we recycle in NASM.
+```
 
 ```markdown
 Syntax highlighted code block
