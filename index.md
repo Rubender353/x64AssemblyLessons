@@ -582,6 +582,52 @@ ld -m elf_x86_64 helloworld-inc64.o -o helloworld-inc64
 Hello, brave new world!
 This is how we recycle in NASM.
 ```
+## Lesson 8
+Passing arguments
+
+Passing arguments to your program from the command line is as easy as popping them off the stack in NASM. When we run our program, any passed arguments are loaded onto the stack in reverse order. The name of the program is then loaded onto the stack and lastly the total number of arguments is loaded onto the stack. The last two stack items for a NASM compiled program are always the name of the program and the number of passed arguments.
+
+So all we have to do to use them is pop the number of arguments off the stack first, then iterate once for each argument and perform our logic. In our program that means calling our print function.
+
+Note: We are using the RCX register as our counter for the loop. Although it's a general-purpose register it's original intention was to be used as a counter. 
+
+helloworld-args.asm
+```
+; Hello World Program (Passing arguments from the command line)
+; Compile with: nasm -f elf64 helloworld-args.asm
+; Link with: ld -m elf_x86_64 helloworld-args.o -o helloworld-args
+; Run with: ./helloworld-args
+ 
+%include        'functions.asm'
+ 
+SECTION .text
+global  _start
+ 
+_start:
+ 
+    pop     rcx             ; first value on the stack is the number of arguments
+ 
+nextArg:
+    cmp     rcx, 0h         ; check to see if we have any arguments left
+    jz      noMoreArgs      ; if zero flag is set jump to noMoreArgs label (jumping over the end of the loop)
+    pop     rax             ; pop the next argument off the stack
+    call    sprintLF        ; call our print with linefeed function
+    dec     rcx             ; decrease rcx (number of arguments left) by 1
+    jmp     nextArg         ; jump to nextArg label
+ 
+noMoreArgs:
+    call    quit
+```
+```
+~$ nasm -f elf64 helloworld-args.asm
+~$ ld -m elf_x86_64 helloworld-args.o -o helloworld-args
+~$ ./helloworld-args "This is one argument" "This is another" 101 
+./helloworld-args
+This is one argument
+This is another 101
+```
+
+
 
 ```markdown
 Syntax highlighted code block
