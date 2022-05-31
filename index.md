@@ -585,11 +585,15 @@ This is how we recycle in NASM.
 ## Lesson 8
 Passing arguments
 
-Passing arguments to your program from the command line is as easy as popping them off the stack in NASM. When we run our program, any passed arguments are loaded onto the stack in reverse order. The name of the program is then loaded onto the stack and lastly the total number of arguments is loaded onto the stack. The last two stack items for a NASM compiled program are always the name of the program and the number of passed arguments.
+In x86 we used to be able to use ECX register as our counter for the loop. Although it's a general-purpose register it's original intention was to be used as a counter. Passing arguments to your program from the command line is as easy as popping them off the stack in NASM. When we run our program in x86, any passed arguments are loaded onto the stack in reverse order. The name of the program is then loaded onto the stack and lastly the total number of arguments is loaded onto the stack. The last two stack items for a NASM compiled program are always the name of the program and the number of passed arguments.
 
-So all we have to do to use them is pop the number of arguments off the stack first, then iterate once for each argument and perform our logic. In our program that means calling our print function.
+So in x86 all we have to do to use them is pop the number of arguments off the stack first, then iterate once for each argument and perform our logic. In our program that means calling our print function.
 
-Note: We are using the RCX register as our counter for the loop. Although it's a general-purpose register it's original intention was to be used as a counter. 
+If we were to compile the Lesson 8 tutorial from asmtutor.com using the nasm -g option we could see the counter gets decremented correctly in GDB. As shown below
+
+![Image description](assets/images/x86gdbreg.png)
+
+
 
 helloworld-args.asm
 ```
