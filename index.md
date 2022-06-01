@@ -710,7 +710,7 @@ This is one argument
 This is another
 101
 ```
-##lesson-9
+## lesson-9
 User input
 
 Introduction to the .bss section
@@ -719,22 +719,15 @@ So far we've used the .text and .data section so now it's time to introduce the 
 
 The syntax to declare variables is as follows:
 .bss section example
-?
-1
-2
-3
-4
-5
-6
-	
+```
 SECTION .bss
 variableName1:      RESB    1       ; reserve space for 1 byte
 variableName2:      RESW    1       ; reserve space for 1 word
 variableName3:      RESD    1       ; reserve space for 1 double word
 variableName4:      RESQ    1       ; reserve space for 1 double precision float (quad word)
 variableName5:      REST    1       ; reserve space for 1 extended precision float
-
- Writing our program
+```
+Writing our program
 
 We will be using the system call sys_read to receive and process input from the user. This function is assigned OPCODE 0 in the Linux System Call Table. Just like sys_write this function also takes 3 arguments which will be loaded into RDX, RSI and RDI before requesting a software interrupt that will call the function.
 
@@ -787,19 +780,19 @@ _start:
     call    quit
 ```
 
-##lesson-10
+## lesson-10
 Count to 10
  
-##lesson-11
+## lesson-11
 Count to 10 (itoa)
  
-##lesson-12
+## lesson-12
 Calculator - addition
  
-##lesson-13
+## lesson-13
 Calculator - subtraction
  
-##lesson-14
+## lesson-14
 Calculator - multiplication
  
 
