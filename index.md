@@ -641,7 +641,7 @@ info registers
 ![Image x86 register start](assets/images/x86gdbreg.png)
 ![Image x86 register zero](assets/images/x86inforegzero.png)
 
-Now if we go back to our 64-bit example and compile it with nasm -g option for debugging we get a segmentation fault. We can see that at first we have 3 in ecx. Our program even prints out the correct stuff. This is due to helloworld-args saving the rcx through pop rcx. However once we get into in sprint our code uses a syscall which clobbers the rcx value with a random value. 
+Now if we go back to our 64-bit example and compile it with nasm -g option for debugging we get a segmentation fault. We can see that at first we have 3 in ecx. Our program even prints out the correct stuff. This is due to helloworld-args saving the rcx through pop rcx. However once we get into sprint our code uses a syscall which clobbers the rcx value with a random value. 
 
 ```
 nasm -g -f elf64 helloworld-args.asm
@@ -665,7 +665,10 @@ nasm -g -f elf64 helloworld-args.asm
 ld -m elf_x86_64 helloworld-args.o -o helloworld-args
 gdb --args ./helloworld-args "cars" "too"
 ```
+## Lesson 8-1
+Passing arguments 64-bit style
 
+Seeing that RCX won't work like we could do in x86 using ECX. We need to use a different technique to print out arguments.
 
 
 ```markdown
