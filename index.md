@@ -7,6 +7,7 @@
 [Lesson 7](#lesson-7) <b>Linefeeds</b>
 
 [Lesson 8](#lesson-8) <b>Passing arguments</b>
+[Lesson 8-1](#Lesson 8-1)<b>Passing arguments 64-bit style<b>
 [Lesson 9](#lesson-9) <b>User input</b>
 [Lesson 10](#lesson-10) <b>Count to 10</b>
 [Lesson 11](#lesson-11) <b>Count to 10 (itoa)</b>
@@ -668,10 +669,47 @@ gdb --args ./helloworld-args "cars" "too"
 ## Lesson 8-1
 Passing arguments 64-bit style
 
-Seeing that RCX won't work like we could do in x86 using ECX. We need to use a different technique to print out arguments. Since we start without calling syscall we still have RCX holding the amount of arguments. So what we can do is move RCX into a placeholder and clear it when done using it. In this case I have updated the code to use r8. we move RCX in R8 and can now forget about RCX which will get clobbered by SYSCALL (SYSCALL also clobbers r11 register)
+Seeing that RCX won't work like we could do in x86 using ECX. We need to use a different technique to print out arguments. Since we start without calling syscall we still have RCX holding the amount of arguments. So what we can do is move RCX into a placeholder and clear it when done using it. In this case I have updated the code to use r8. we move RCX in R8 and can now forget about RCX which will get clobbered by SYSCALL (SYSCALL also clobbers r11 register). Keep in mind if r8 was going to be used by other areas of your code you can run into issues. As we can see below it works succesfully.
 
-[This example shows one way to do this they use r8](https://gist.github.com/Gydo194/730c1775f1e05fdca6e9b0c175636f5b)
+[This example shows another way we can do this in 64-bit](https://gist.github.com/Gydo194/730c1775f1e05fdca6e9b0c175636f5b)
 
+helloworld-args.asm
+```
+; Hello World Program (Passing arguments from the command line)
+; Compile with: nasm -f elf64 helloworld-args.asm
+; Link with: ld -m elf_x86_64 helloworld-args.o -o helloworld-args
+; Run with: ./helloworld-args
+ 
+%include        'functions.asm'
+ 
+SECTION .text
+global  _start
+ 
+_start:
+ 
+    pop     rcx             ; first value on the stack is the number of arguments
+    mov     r8,rcx          ; Sinc rcx gets clobbered lets move it into r8
+ 
+nextArg:
+    cmp     r8, 0h         ; check to see if we have any arguments left
+    jz      noMoreArgs      ; if zero flag is set jump to noMoreArgs label (jumping over the end of the loop)
+    pop     rax             ; pop the next argument off the stack
+    call    sprintLF        ; call our print with linefeed function
+    dec     r8             ; decrease rcx (number of arguments left) by 1
+    jmp     nextArg         ; jump to nextArg label
+ 
+noMoreArgs:
+    call    quit
+```
+```
+~$ nasm -f elf64 helloworld-args.asm
+~$ ld -m elf_x86_64 helloworld-args.o -o helloworld-args
+~$ ./helloworld-args "This is one argument" "This is another" 101 
+./helloworld-args
+This is one argument
+This is another
+101
+```
 
 ```markdown
 Syntax highlighted code block
