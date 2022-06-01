@@ -7,7 +7,7 @@
 [Lesson 7](#lesson-7) <b>Linefeeds</b>
 
 [Lesson 8](#lesson-8) <b>Passing arguments</b>
-[Lesson 8-1](#Lesson 8-1)<b>Passing arguments 64-bit style</b>
+[Lesson 8-1](#Lesson-8-1)<b>Passing arguments 64-bit style</b>
 [Lesson 9](#lesson-9) <b>User input</b>
 [Lesson 10](#lesson-10) <b>Count to 10</b>
 [Lesson 11](#lesson-11) <b>Count to 10 (itoa)</b>
