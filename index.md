@@ -668,7 +668,9 @@ gdb --args ./helloworld-args "cars" "too"
 ## Lesson 8-1
 Passing arguments 64-bit style
 
-Seeing that RCX won't work like we could do in x86 using ECX. We need to use a different technique to print out arguments.
+Seeing that RCX won't work like we could do in x86 using ECX. We need to use a different technique to print out arguments. Since we start without calling syscall we still have RCX holding the amount of arguments. So what we can do is move RCX into a placeholder and clear it when done using it. In this case I have updated the code to use r8. we move RCX in R8 and can now forget about RCX which will get clobbered by SYSCALL (SYSCALL also clobbers r11 register)
+
+[This example shows one way to do this they use r8](https://gist.github.com/Gydo194/730c1775f1e05fdca6e9b0c175636f5b)
 
 
 ```markdown
