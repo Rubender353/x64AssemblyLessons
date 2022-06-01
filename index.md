@@ -589,12 +589,6 @@ In x86 we used to be able to use ECX register as our counter for the loop. Altho
 
 So in x86 all we have to do to use them is pop the number of arguments off the stack first, then iterate once for each argument and perform our logic. In our program that means calling our print function.
 
-If we were to compile the Lesson 8 tutorial from asmtutor.com using the nasm -g option we could see the counter gets decremented correctly in GDB. As shown below
-
-![Image description](assets/images/x86gdbreg.png)
-
-
-
 helloworld-args.asm
 ```
 ; Hello World Program (Passing arguments from the command line)
@@ -629,6 +623,47 @@ noMoreArgs:
 ./helloworld-args
 This is one argument
 This is another 101
+Error Segmentation Fault
+```
+
+If we were to compile the x86 version from Lesson 8 tutorial in asmtutor.com using the nasm -g option we could see the counter gets decremented correctly in GDB. As shown below we start with 3 in ECX. After continously clicking s to step in or n for next in Gdb eventually the program will exit. With ECX showing zero and no segmentation fault.
+
+```
+nasm -g -f elf helloworld-args.asm
+ld -m elf_i386 helloworld-args.o -o helloworld-args
+gdb --args ./helloworld-args "cars" "too"
+break _start
+run
+s
+info registers
+```
+
+![Image x86 register start](assets/images/x86gdbreg.png)
+![Image x86 register zero](assets/images/x86inforegzero.png)
+
+Now if we go back to our 64-bit example and compile it with nasm -g option for debugging we get a segmentation fault. We can see that at first we have 3 in ecx. Our program even prints out the correct stuff. This is due to helloworld-args saving the rcx through pop rcx. However once we get into in sprint our code uses a syscall which clobbers the rcx value with a random value. 
+
+```
+nasm -g -f elf64 helloworld-args.asm
+ld -m elf_x86_64 helloworld-args.o -o helloworld-args
+gdb --args ./helloworld-args "cars" "too"
+break _start
+run
+n
+info registers
+```
+
+![Image x64 register start](assets/images/lesson8gdbstart.png)
+![Image x64 register start2](assets/images/lesson8gdbregister.png)
+
+Now that rcx has been clobbered the code will run even printing the right arguments. However the code will return back and never hit jz    noMoreArgs The reason being that it will think there are still more arguments left. eventually hitting a segmentation fault while in our functions.asm. [Click here to learn more about syscall clobber](https://peaku.co/questions/20070-%C2%BFcuando-linux-x86-64-syscall-clobber-%25r8%252C-%25r9-y-%25r10) What we know need to do is find a way to print the arguments without relying on RCX. 
+
+![Image x64 rcx clobber](assets/images/lesson8GdbRcxClobber.png)
+
+```
+nasm -g -f elf64 helloworld-args.asm
+ld -m elf_x86_64 helloworld-args.o -o helloworld-args
+gdb --args ./helloworld-args "cars" "too"
 ```
 
 
