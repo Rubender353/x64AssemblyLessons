@@ -688,7 +688,7 @@ global  _start
 _start:
  
     pop     rcx             ; first value on the stack is the number of arguments
-    mov     r8,rcx          ; Sinc rcx gets clobbered lets move it into r8
+    mov     r8,rcx          ; Since rcx gets clobbered lets move it into r8
  
 nextArg:
     cmp     r8, 0h         ; check to see if we have any arguments left
@@ -710,6 +710,98 @@ This is one argument
 This is another
 101
 ```
+##lesson-9
+User input
+
+Introduction to the .bss section
+
+So far we've used the .text and .data section so now it's time to introduce the .bss section. BSS stands for Block Started by Symbol. It is an area in our program that is used to reserve space in memory for uninitialised variables. We will use it to reserve some space in memory to hold our user input since we don't know how many bytes we'll need to store.
+
+The syntax to declare variables is as follows:
+.bss section example
+?
+1
+2
+3
+4
+5
+6
+	
+SECTION .bss
+variableName1:      RESB    1       ; reserve space for 1 byte
+variableName2:      RESW    1       ; reserve space for 1 word
+variableName3:      RESD    1       ; reserve space for 1 double word
+variableName4:      RESQ    1       ; reserve space for 1 double precision float (quad word)
+variableName5:      REST    1       ; reserve space for 1 extended precision float
+
+ Writing our program
+
+We will be using the system call sys_read to receive and process input from the user. This function is assigned OPCODE 0 in the Linux System Call Table. Just like sys_write this function also takes 3 arguments which will be loaded into RDX, RSI and RDI before requesting a software interrupt that will call the function.
+
+The arguments passed are as follows:
+
+    RDX will be loaded with the maximum length (in bytes) of the space in memory.
+    RSI will be loaded with the address of our variable created in the .bss section.
+    RDI will be loaded with the file we want to write to – in this case STDIN.
+
+As always the datatype and meaning of the arguments passed can be found in the function's definition.
+
+When sys_read detects a linefeed, control returns to the program and the users input is located at the memory address you passed in RSI.
+
+helloworld-input.asm
+```
+; Hello World Program (Getting input)
+; Compile with: nasm -f elf64 helloworld-input.asm
+; Link with ld -m elf_x86_64 helloworld-input.o -o helloworld-input
+; Run with: ./helloworld-input
+ 
+%include        'functions.asm'
+ 
+SECTION .data
+msg1        db      'Please enter your name: ', 0h      ; message string asking user for input
+msg2        db      'Hello, ', 0h                       ; message string to use after user has entered their name
+ 
+SECTION .bss
+sinput:     resb    255                                 ; reserve a 255 byte space in memory for the users input string
+ 
+SECTION .text
+global  _start
+ 
+_start:
+ 
+    mov     rax, msg1
+    call    sprint
+ 
+    mov     rdx, 255        ; number of bytes to read
+    mov     rsi, sinput     ; reserved space to store our input (known as a buffer)
+    mov     rdi, 0          ; write to the STDIN file
+    mov     rax, 0          ; invoke SYS_READ (kernel opcode 0)
+    syscall
+ 
+    mov     rax, msg2
+    call    sprint
+ 
+    mov     rax, sinput     ; move our buffer into eax (Note: input contains a linefeed)
+    call    sprint          ; call our print function
+ 
+    call    quit
+```
+
+##lesson-10
+Count to 10
+ 
+##lesson-11
+Count to 10 (itoa)
+ 
+##lesson-12
+Calculator - addition
+ 
+##lesson-13
+Calculator - subtraction
+ 
+##lesson-14
+Calculator - multiplication
+ 
 
 ```markdown
 Syntax highlighted code block
