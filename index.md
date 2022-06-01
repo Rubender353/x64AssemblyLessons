@@ -732,9 +732,9 @@ Writing our program
 We will be using the system call sys_read to receive and process input from the user. This function is assigned OPCODE 0 in the Linux System Call Table. Just like sys_write this function also takes 3 arguments which will be loaded into RDX, RSI and RDI before requesting a software interrupt that will call the function.
 
 The arguments passed are as follows:
-RDX will be loaded with the maximum length (in bytes) of the space in memory.
-    RSI will be loaded with the address of our variable created in the .bss section.
-    RDI will be loaded with the file we want to write to – in this case STDIN.
+   - RDX will be loaded with the maximum length (in bytes) of the space in memory.
+   - RSI will be loaded with the address of our variable created in the .bss section.
+   - RDI will be loaded with the file we want to write to – in this case STDIN.
 
 As always the datatype and meaning of the arguments passed can be found in the function's definition.
 
