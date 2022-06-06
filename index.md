@@ -781,9 +781,206 @@ _start:
 
 ## lesson-10
 Count to 10
+
+Firstly, some background
+
+Counting by numbers is not as straight forward as you would think in assembly. Firstly we need to pass sys_write an address in memory so we can't just load our register with a number and call our print function. Secondly, numbers and strings are very different things in assembly. Strings are represented by what are called ASCII values. ASCII stands for American Standard Code for Information Interchange. A good reference for ASCII can be found here. ASCII was created as a way to standardise the representation of strings across all computers.
+
+Remember, we can't print a number - we have to print a string. In order to count to 10 we will need to convert our numbers from standard integers to their ASCII string representations. Have a look at the ASCII values table and notice that the string representation for the number '1' is actually '49' in ASCII. In fact, adding 48 to our numbers is all we have to do to convert them from integers to their ASCII string representations.
+Writing our program
+
+What we will do with our program is count from 1 to 10 using the R8 register. We will then add 48 to our counter to convert it from a number to it's ASCII string representation. We will then push this value to the stack and call our print function passing RSP as the memory address to print from. Once we have finished counting to 10 we will exit our counting loop and call our quit function.
+
+helloworld-10.asm
+```
+; Hello World Program (Count to 10)
+; Compile with: nasm -f elf64 helloworld-10.asm
+; Link with: ld -m elf_x86_64 helloworld-10.o -o helloworld-10
+; Run with: ./helloworld-10
  
+%include        'functions.asm'
+ 
+SECTION .text
+global  _start
+ 
+_start:
+ 
+    mov     r8, 0          ; r8 is initalised to zero.
+ 
+nextNumber:
+    inc     r8             ; increment r8
+ 
+    mov     rax, r8        ; move the address of our integer into rax
+    add     rax, 48         ; add 48 to our number to convert from integer to ascii for printing
+    push    rax             ; push rax to the stack
+    mov     rax, rsp        ; get the address of the character on the stack
+    call    sprintLF        ; call our print function
+ 
+    pop     rax             ; clean up the stack so we don't have unneeded bytes taking up space
+    cmp     r8, 10         ; have we reached 10 yet? compare our counter with decimal 10
+    jne     nextNumber      ; jump if not equal and keep counting
+ 
+    call    quit
+```
+```
+~$ nasm -f elf helloworld-10.asm 
+~$ ld -m elf_i386 helloworld-10.o -o helloworld-10 
+~$ ./helloworld-10 
+1 
+2 
+3 
+4 
+5 
+6 
+7 
+8 
+9 
+:
+```
+Error: Our number 10 prints a colon (:) character instead. What's going on? 
+
 ## lesson-11
 Count to 10 (itoa)
+
+So why did our program in Lesson 10 print out a colon character instead of the number 10?. Well lets have a look at our ASCII table. We can see that the colon character has a ASCII value of 58. We were adding 48 to our integers to convert them to their ASCII string representations so instead of passing sys_write the value '58' to print ten we actually need to pass the ASCII value for the number 1 followed by the ASCII value for the number 0. Passing sys_write '4948' is the correct string representation for the number '10'. So we can't just simply add 48 to our numbers to convert them, we first have to divide them by 10 because each place value needs to be converted individually.
+
+We will write 2 new subroutines in this lesson 'iprint' and 'iprintLF'. These functions will be used when we want to print ASCII string representations of numbers. We achieve this by passing the number in RAX. We then initialise a counter in R8. We will repeatedly divide the number by 10 and each time convert the remainder to a string by adding 48. We will then push this onto the stack for later use. Once we can no longer divide the number by 10 we will enter our second loop. In this print loop we will print the now converted string representations from the stack and pop them off. Popping them off the stack moves RSP forward to the next item on the stack. Each time we print a value we will decrease our counter R8. Once all numbers have been converted and printed we will return to our program.
+
+How does the divide instruction work?
+
+The DIV and IDIV instructions work by dividing whatever is in RAX by the value passed to the instruction. The quotient part of the value is left in RAX and the remainder part is put into RDX (Originally called the data register).
+
+For example.
+IDIV instruction example
+```
+mov     eax, 10         ; move 10 into eax
+mov     esi, 10         ; move 10 into esi
+idiv    esi             ; divide eax by esi (eax will equal 1 and edx will equal 0)
+idiv    esi             ; divide eax by esi again (eax will equal 0 and edx will equal 1)
+```
+If we are only storing the remainder won't we have problems?
+
+No, because these are integers, when you divide a number by an even bigger number the quotient in RAX is 0 and the remainder is the number itself. This is because the number divides zero times leaving the original value as the remainder in RDX. How good is that?
+
+Note: Only the new functions iprint and iprintLF have comments. 
+
+functions.asm
+```
+;------------------------------------------
+; void iprint(Integer number)
+; Integer printing function (itoa)
+iprint:
+    push    rax             ; preserve rax on the stack to be restored after function runs
+    push    r8             ; preserve r8 on the stack to be restored after function runs
+    push    rdx             ; preserve edx on the stack to be restored after function runs
+    push    rsi             ; preserve esi on the stack to be restored after function runs
+    mov     r8, 0          ; counter of how many bytes we need to print in the end
+ 
+divideLoop:
+    inc     r8             ; count each byte to print - number of characters
+    mov     rdx, 0          ; empty rdx
+    mov     rsi, 10         ; mov 10 into rsi
+    idiv    rsi             ; divide rax by rsi
+    add     rdx, 48         ; convert rdx to it's ascii representation - rdx holds the remainder after a divide instruction
+    push    rdx             ; push rdx (string representation of an intger) onto the stack
+    cmp     rax, 0          ; can the integer be divided anymore?
+    jnz     divideLoop      ; jump if not zero to the label divideLoop
+ 
+printLoop:
+    dec     r8             ; count down each byte that we put on the stack
+    mov     rax, rsp        ; mov the stack pointer into rax for printing
+    call    sprint          ; call our string print function
+    pop     rax             ; remove last character from the stack to move esp forward
+    cmp     r8, 0          ; have we printed all bytes we pushed onto the stack?
+    jnz     printLoop       ; jump is not zero to the label printLoop
+ 
+    pop     rsi             ; restore rsi from the value we pushed onto the stack at the start
+    pop     rdx             ; restore rdx from the value we pushed onto the stack at the start
+    pop     r8             ; restore r8 from the value we pushed onto the stack at the start
+    pop     rax             ; restore rax from the value we pushed onto the stack at the start
+    ret
+ 
+ 
+;------------------------------------------
+; void iprintLF(Integer number)
+; Integer printing function with linefeed (itoa)
+iprintLF:
+    call    iprint          ; call our integer printing function
+ 
+    push    rax             ; push rax onto the stack to preserve it while we use the rax register in this function
+    mov     rax, 0Ah        ; move 0Ah into rax - 0Ah is the ascii character for a linefeed
+    push    rax             ; push the linefeed onto the stack so we can get the address
+    mov     rax, esp        ; move the address of the current stack pointer into rax for sprint
+    call    sprint          ; call our sprint function
+    pop     rax             ; remove our linefeed character from the stack
+    pop     rax             ; restore the original value of rax before our function was called
+    ret
+;------------------------------------------
+; int slen(String message)
+; String length calculation function
+slen:
+    push    rdi
+    mov     rdi, rax
+ 
+nextchar:
+    cmp     byte [rax], 0
+    jz      finished
+    inc     rax
+    jmp     nextchar
+ 
+finished:
+    sub     rax, rdi
+    pop     rdi
+    ret
+ 
+ 
+;------------------------------------------
+; void sprint(String message)
+; String printing function
+sprint:
+    push    rdx
+    push    rsi
+    push    rdi
+    push    rax
+    call    slen
+ 
+    mov     rdx, rax
+    pop     rax
+ 
+    mov     rsi, rax
+    mov     rdi, 1
+    mov     rax, 1
+    syscall
+ 
+    pop     rdi
+    pop     rsi
+    pop     rdx
+    ret
+ 
+;------------------------------------------
+; void sprintLF(String message)
+; String printing with line feed function
+sprintLF:
+    call    sprint
+ 
+    push    rax         ; push rax onto the stack to preserve it while we use the rax register in this function
+    mov     rax, 0Ah    ; move 0Ah into rax - 0Ah is the ascii character for a linefeed
+    push    rax         ; push the linefeed onto the stack so we can get the address
+    mov     rax, rsp    ; move the address of the current stack pointer into rax for sprint
+    call    sprint      ; call our sprint function
+    pop     rax         ; remove our linefeed character from the stack
+    pop     rax         ; restore the original value of rax before our function was called
+    ret                 ; return to our program
+
+;------------------------------------------
+; void exit()
+; Exit program and restore resources
+quit:
+    mov     rdi, 0
+    mov     rax, 60
+    syscall
+    ret
+```
  
 ## lesson-12
 Calculator - addition
