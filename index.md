@@ -784,7 +784,7 @@ Count to 10
 
 Firstly, some background
 
-Counting by numbers is not as straight forward as you would think in assembly. Firstly we need to pass sys_write an address in memory so we can't just load our register with a number and call our print function. Secondly, numbers and strings are very different things in assembly. Strings are represented by what are called ASCII values. ASCII stands for American Standard Code for Information Interchange. A good reference for ASCII can be found here. ASCII was created as a way to standardise the representation of strings across all computers.
+Counting by numbers is not as straight forward as you would think in assembly. Firstly we need to pass sys_write an address in memory so we can't just load our register with a number and call our print function. Secondly, numbers and strings are very different things in assembly. Strings are represented by what are called ASCII values. ASCII stands for American Standard Code for Information Interchange. A good reference for ASCII can be found [here](https://www.asciitable.com/). ASCII was created as a way to standardise the representation of strings across all computers.
 
 Remember, we can't print a number - we have to print a string. In order to count to 10 we will need to convert our numbers from standard integers to their ASCII string representations. Have a look at the ASCII values table and notice that the string representation for the number '1' is actually '49' in ASCII. In fact, adding 48 to our numbers is all we have to do to convert them from integers to their ASCII string representations.
 Writing our program
@@ -853,10 +853,10 @@ The DIV and IDIV instructions work by dividing whatever is in RAX by the value p
 For example.
 IDIV instruction example
 ```
-mov     eax, 10         ; move 10 into eax
-mov     esi, 10         ; move 10 into esi
-idiv    esi             ; divide eax by esi (eax will equal 1 and edx will equal 0)
-idiv    esi             ; divide eax by esi again (eax will equal 0 and edx will equal 1)
+mov     rax, 10         ; move 10 into rax
+mov     rsi, 10         ; move 10 into rsi
+idiv    rsi             ; divide rax by rsi (rax will equal 1 and rdx will equal 0)
+idiv    rsi             ; divide rax by rsi again (rax will equal 0 and rdx will equal 1)
 ```
 If we are only storing the remainder won't we have problems?
 
@@ -872,8 +872,8 @@ functions.asm
 iprint:
     push    rax             ; preserve rax on the stack to be restored after function runs
     push    r8             ; preserve r8 on the stack to be restored after function runs
-    push    rdx             ; preserve edx on the stack to be restored after function runs
-    push    rsi             ; preserve esi on the stack to be restored after function runs
+    push    rdx             ; preserve rdx on the stack to be restored after function runs
+    push    rsi             ; preserve rsi on the stack to be restored after function runs
     mov     r8, 0          ; counter of how many bytes we need to print in the end
  
 divideLoop:
@@ -963,14 +963,14 @@ sprint:
 sprintLF:
     call    sprint
  
-    push    rax         ; push rax onto the stack to preserve it while we use the rax register in this function
-    mov     rax, 0Ah    ; move 0Ah into rax - 0Ah is the ascii character for a linefeed
-    push    rax         ; push the linefeed onto the stack so we can get the address
-    mov     rax, rsp    ; move the address of the current stack pointer into rax for sprint
-    call    sprint      ; call our sprint function
-    pop     rax         ; remove our linefeed character from the stack
-    pop     rax         ; restore the original value of rax before our function was called
-    ret                 ; return to our program
+    push    rax     
+    mov     rax, 0Ah
+    push    rax
+    mov     rax, rsp
+    call    sprint
+    pop     rax
+    pop     rax
+    ret
 
 ;------------------------------------------
 ; void exit()
@@ -981,16 +981,165 @@ quit:
     syscall
     ret
 ```
+helloworld-itoa.asm
+```
+; Hello World Program (Count to 10 itoa)
+; Compile with: nasm -f elf64 helloworld-itoa.asm
+; Link with: ld -m elf_x86_64 helloworld-itoa.o -o helloworld-itoa
+; Run with: ./helloworld-itoa
+
+%include        'functions.asm'
+ 
+SECTION .text
+global  _start
+ 
+_start:
+ 
+    mov     r8, 0
+ 
+nextNumber:
+    inc     r8
+    mov     rax, r8
+    call    iprintLF        ; NOTE call our new integer printing function (itoa)
+    cmp     r8, 10
+    jne     nextNumber
+ 
+    call    quit
+```
+It should now print 1-10 correctly after compile and link
  
 ## lesson-12
 Calculator - addition
+
+In this program we will be adding the registers RAX and RBX together and we'll leave our answer in RAX. Firstly we use the MOV instruction to load RAX with an integer (in this case 90). We then MOV an integer into RBX (in this case 9). Now all we need to do is use the ADD instruction to perform our addition. RBX & RAX will be added together leaving our answer in the left most register in this instruction (in our case RAX). Then all we need to do is call our integer printing function to complete the program.
+calculator-addition.asm
+```
+; Calculator (Addition)
+; Compile with: nasm -f elf64 calculator-addition.asm
+; Link with: ld -m elf_x86_64 calculator-addition.o -o calculator-addition
+; Run with: ./calculator-addition
  
+%include        'functions.asm'
+ 
+SECTION .text
+global  _start
+ 
+_start:
+ 
+    mov     rax, 90     ; move our first number into rax
+    mov     rbx, 9      ; move our second number into rbx
+    add     rax, rbx    ; add rbx to rax
+    call    iprintLF    ; call our integer print with linefeed function
+ 
+    call    quit
+```
+After link and compile running it should print out 99
+$ ./calculator-addition
+99
+
 ## lesson-13
 Calculator - subtraction
+In this program we will be subtracting the value in the register RBX from the value in the register RAX. Firstly we load RAX and RBX with integers in the same way as Lesson 12. The only difference is we will be using the SUB instruction to perform our subtraction logic, leaving our answer in the left most register of this instruction (in our case RAX). Then all we need to do is call our integer printing function to complete the program.
+calculator-subtraction.asm
+```
+; Calculator (Subtraction)
+; Compile with: nasm -f elf64 calculator-subtraction.asm
+; Link with: ld -m elf_x86_64 calculator-subtraction.o -o calculator-subtraction
+; Run with: ./calculator-subtraction
  
+%include        'functions.asm'
+ 
+SECTION .text
+global  _start
+ 
+_start:
+ 
+    mov     rax, 90     ; move our first number into rax
+    mov     rbx, 9      ; move our second number into rbx
+    sub     rax, rbx    ; subtract rbx from rax
+    call    iprintLF    ; call our integer print with linefeed function
+ 
+    call    quit
+```
+
 ## lesson-14
 Calculator - multiplication
+In this program we will be multiplying the value in RBX by the value present in RAX. Firstly we load RAX and RBX with integers in the same way as Lesson 12. This time though we will be calling the MUL instruction to perform our multiplication logic. The MUL instruction is different from many instructions in NASM, in that it only accepts one further argument. The MUL instruction always multiples RAX by whatever value is passed after it. The answer is left in RAX.
+
+calculator-multiplication.asm
+```
+; Calculator (Multiplication)
+; Compile with: nasm -f elf64 calculator-multiplication.asm
+; Link with: ld -m elf_x86_64 calculator-multiplication.o -o calculator-multiplication
+; Run with: ./calculator-multiplication
  
+%include        'functions.asm'
+ 
+SECTION .text
+global  _start
+ 
+_start:
+ 
+    mov     rax, 90     ; move our first number into rax
+    mov     rbx, 9      ; move our second number into rbx
+    mul     rbx         ; multiply rax by rbx
+    call    iprintLF    ; call our integer print with linefeed function
+ 
+    call    quit
+```
+## lesson-15
+Calculator - division
+
+In this program we will be dividing the value in RBX by the value present in RAX. We've used division before in our integer print subroutine. Our program requires a few extra strings in order to print out the correct answer but otherwise there's nothing complicated going on.
+
+Firstly we load RAX and RBX with integers in the same way as Lesson 12. Division logic is performed using the DIV instruction. The DIV instruction always divides RAX by the value passed after it. It will leave the quotient part of the answer in RAX and put the remainder part in RDX (the original data register). We then MOV and call our strings and integers to print out the correct answer.
+
+calculator-division.asm
+```
+; Calculator (Division)
+; Compile with: nasm -f elf64 calculator-division.asm
+; Link with: ld -m elf_x86_64 calculator-division.o -o calculator-division
+; Run with: ./calculator-division
+ 
+%include        'functions.asm'
+ 
+SECTION .data
+msg1        db      ' remainder '      ; a message string to correctly output result
+ 
+SECTION .text
+global  _start
+ 
+_start:
+ 
+    mov     rax, 90     ; move our first number into rax
+    mov     rbx, 9      ; move our second number into rbx
+    div     rbx         ; divide rax by rbx
+    call    iprint      ; call our integer print function on the quotient
+    mov     rax, msg1   ; move our message string into rax
+    call    sprint      ; call our string print function
+    mov     rax, rdx    ; move our remainder into rax
+    call    iprintLF    ; call our integer printing with linefeed function
+ 
+    call    quit
+```
+
+## lesson-16
+Calculator (atoi)
+
+## lesson-17 
+Namespace
+
+## lesson-18
+Fizz Buzz
+
+## lesson-19
+Execute Command
+
+## lesson-20
+Process Forking
+
+## lesson-21
+Telling the time
 
 ```
 markdown
