@@ -1302,7 +1302,7 @@ iprint:
     add     rdx, 48         ; convert rdx to it's ascii representation - rdx holds the remainder after a divide instruction
     push    rdx             ; push rdx (string representation of an intger) onto the stack
     cmp     rax, 0          ; can the integer be divided anymore?
-    jnz     divideLoop      ; jump if not zero to the label divideLoop
+    jnz     .divideLoop      ; jump if not zero to the label divideLoop
  
 .printLoop:
     dec     r8             ; count down each byte that we put on the stack
@@ -1310,7 +1310,7 @@ iprint:
     call    sprint          ; call our string print function
     pop     rax             ; remove last character from the stack to move esp forward
     cmp     r8, 0          ; have we printed all bytes we pushed onto the stack?
-    jnz     printLoop       ; jump is not zero to the label printLoop
+    jnz     .printLoop       ; jump is not zero to the label printLoop
  
     pop     rsi             ; restore rsi from the value we pushed onto the stack at the start
     pop     rdx             ; restore rdx from the value we pushed onto the stack at the start
@@ -1342,9 +1342,9 @@ slen:
  
 .nextchar:
     cmp     byte [rax], 0
-    jz      finished
+    jz      .finished
     inc     rax
-    jmp     nextchar
+    jmp     .nextchar
  
 .finished:
     sub     rax, rdi
@@ -1453,6 +1453,12 @@ finished:
 ~$ nasm -f elf64 namespace.asm
 ~$ ld -m elf_x86_64 namespace.o -o namespace
 ~$ ./namespace
+Jumping to finished label.
+Inside subroutine number: 1
+Jumping to finished label.
+Inside subroutine number: 2
+Jumping to finished label.
+Inside subroutine "finished".
 ```
 
 ## lesson-18
