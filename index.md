@@ -1462,7 +1462,105 @@ Inside subroutine "finished".
 ```
 
 ## lesson-18
-Fizz Buzz
+### Fizz Buzz
+
+Firstly, some background
+
+FizzBuzz is group word game played in schools to teach children division. Players take turns to count aloud integers from 1 to 100 replacing any number divisible by 3 with the word "fizz" and any number divisible by 5 with the word "buzz". Numbers that are both divisible by 3 and 5 are replaced by the word "fizzbuzz". This children's game has also become a defacto interview screening question for computer programming jobs as it's thought to easily discover candidates that can't construct a simple logic gate.
+
+Writing our program
+
+There are a number of code solutions to this simple game and some languages offer very trivial and elegant solutions. Depending on how you choose to solve it, the solution almost always involves an if statement and possibly an else statement depending whether you choose to exploit the mathematical property that anything divisible by 5 & 3 would also be divisible by 3 * 5. Being that this is an assembly language tutorial we will provide a solution that involves a structure of two cascading if statements to print the words "fizz" and/or "buzz" and an else statement in case these fail, to print the integer as an ascii value. Each iteration of our loop will then print a line feed. Once we reach 100 we call our program exit function.
+
+fizzbuzz.asm
+```
+; Fizzbuzz
+; Compile with: nasm -f elf64 fizzbuzz.asm
+; Link with: ld -m elf_x86_64 fizzbuzz.o -o fizzbuzz
+; Run with: ./fizzbuzz
+ 
+%include        'functions.asm'
+ 
+SECTION .data
+fizz        db      'Fizz', 0h     ; a message string
+buzz        db      'Buzz', 0h     ; a message string
+ 
+SECTION .text
+global  _start
+ 
+_start:
+ 
+    mov     rsi, 0          ; initialise our checkFizz boolean variable
+    mov     rdi, 0          ; initialise our checkBuzz boolean variable
+    mov     r8, 0          ; initialise our counter variable
+ 
+nextNumber:
+    inc     r8             ; increment our counter variable
+ 
+.checkFizz:
+    mov     rdx, 0          ; clear the rdx register - this will hold our remainder after division
+    mov     rax, r8        ; move the value of our counter into rax for division
+    mov     rbx, 3          ; move our number to divide by into rbx (in this case the value is 3)
+    div     rbx             ; divide rax by rbx
+    mov     rdi, rdx        ; move our remainder into rdi (our checkFizz boolean variable)
+    cmp     rdi, 0          ; compare if the remainder is zero (meaning the counter divides by 3)
+    jne     .checkBuzz      ; if the remainder is not equal to zero jump to local label checkBuzz
+    mov     rax, fizz       ; else move the address of our fizz string into rax for printing
+    call    sprint          ; call our string printing function
+ 
+.checkBuzz:
+    mov     rdx, 0          ; clear the rdx register - this will hold our remainder after division
+    mov     rax, r8        ; move the value of our counter into rax for division
+    mov     rbx, 5          ; move our number to divide by into rbx (in this case the value is 5)
+    div     rbx             ; divide rax by rbx
+    mov     rsi, rdx        ; move our remainder into rdi (our checkBuzz boolean variable)
+    cmp     rsi, 0          ; compare if the remainder is zero (meaning the counter divides by 5)
+    jne     .checkInt       ; if the remainder is not equal to zero jump to local label checkInt
+    mov     rax, buzz       ; else move the address of our buzz string into rax for printing
+    call    sprint          ; call our string printing function
+ 
+.checkInt:
+    cmp     rdi, 0          ; rdi contains the remainder after the division in checkFizz
+    je     .continue        ; if equal (counter divides by 3) skip printing the integer
+    cmp     rsi, 0          ; rsi contains the remainder after the division in checkBuzz
+    je     .continue        ; if equal (counter divides by 5) skip printing the integer
+    mov     rax, r8        ; else move the value in r8 (our counter) into rax for printing
+    call    iprint          ; call our integer printing function
+ 
+.continue:
+    mov     rax, 0Ah        ; move an ascii linefeed character into rax
+    push    rax             ; push the address of rax onto the stack for printing
+    mov     rax, rsp        ; get the stack pointer (address on the stack of our linefeed char)
+    call    sprint          ; call our string printing function to print a line feed
+    pop     rax             ; pop the stack so we don't waste resources
+    cmp     r8, 100        ; compare if our counter is equal to 100
+    jne     nextNumber      ; if not equal jump to the start of the loop
+ 
+    call    quit            ; else call our quit function
+```
+```
+~$ nasm -f elf64 fizzbuzz.asm
+~$ ld -m elf_x86_64 fizzbuzz.o -o fizzbuzz
+~$ ./fizzbuzz                             
+1
+2
+Fizz
+4
+Buzz
+Fizz
+7
+8
+Fizz
+Buzz
+11
+Fizz
+13
+14
+FizzBuzz
+16
+17
+
+```
 
 ## lesson-19
 Execute Command
