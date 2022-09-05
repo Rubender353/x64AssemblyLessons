@@ -1780,7 +1780,7 @@ _start:
     mov     rdx, 12             ; number of bytes to write - one for each letter of our contents string
     mov     rsi, contents       ; move the memory address of our contents string into rsi
     mov     rdi, rax            ; move the file descriptor of the file we created into rdi
-    mov     rax, 1              ; invoke SYS_WRITE (kernel opcode 4)
+    mov     rax, 1              ; invoke SYS_WRITE (kernel opcode 1)
     syscall                     ; call the kernel
  
     call    quit                ; call our quit function
@@ -1974,10 +1974,10 @@ Using sys_lseek you can move the cursor within the file by an offset in bytes. T
 
 sys_lseek expects 3 arguments - the whence argument (table below) in RDX, the offset in bytes in RSI, and the file descriptor in RDI. The sys_lseek opcode is then loaded into RAX and we call the kernel to move the file pointer to the correct offset. We then use sys_write to update the content at that position.
 	
-<table class="table">
+<table>
                                     <thead>
                                         <tr>
-                                            <th></th>
+                                            <th>Whence</th>
                                             <th>Description</th>
                                             <th>Value</th>
                                         </tr>
@@ -2003,12 +2003,75 @@ sys_lseek expects 3 arguments - the whence argument (table below) in RDX, the of
 
 Note: A file 'readme.txt' has been included in the code folder for this lesson. This file will be updated after running the program. You could also use the helloworld readme.txt from earlier lessons, or make your own readme.txt file.
 
+seek.asm
 ```
-
+; Seek
+; Compile with: nasm -f elf64 seek.asm
+; Link with: ld -m elf_x86_64 seek.o -o seek
+; Run with: ./seek
+ 
+%include    'functions.asm'
+ 
+SECTION .data
+filename db 'readme.txt', 0h    ; the filename to create
+contents  db '-updated-', 0h     ; the contents to write at the start of the file
+ 
+SECTION .text
+global  _start
+ 
+_start:
+ 
+    mov     rsi, 1              ; flag for writeonly access mode (O_WRONLY)
+    mov     rdi, filename       ; filename of the file to open
+    mov     rax, 2              ; invoke SYS_OPEN (kernel opcode 2)
+    syscall                     ; call the kernel
+ 
+    mov     rdx, 2              ; whence argument (SEEK_END)
+    mov     rsi, 0              ; move the cursor 0 bytes
+    mov     rdi, rax            ; move the opened file descriptor into rdi
+    mov     rax, 8             ; invoke SYS_LSEEK (kernel opcode 8)
+    syscall                     ; call the kernel
+ 
+    mov     rdx, 9              ; number of bytes to write - one for each letter of our contents string
+    mov     rsi, contents       ; move the memory address of our contents string into rsi
+    mov     rdi, rdi            ; move the opened file descriptor into rdi (not required as rdi already has the FD)
+    mov     rax, 1              ; invoke SYS_WRITE (kernel opcode 1)
+    syscall                     ; call the kernel
+ 
+    call    quit                ; call our quit function
 ```
 ## lesson-28
 File Handling - Delete
 
+Deleting a file on linux is achieved by calling sys_unlink.
+
+sys_unlink expects 1 argument - the filename in RDI. The sys_unlink opcode is then loaded into RAX and the kernel is called to delete the file.
+
+Note: A file 'readme.txt' has been included in the code folder for this lesson. This file will be deleted after running the program. 
+
+unlink.asm
+```
+; Unlink
+; Compile with: nasm -f elf64 unlink.asm
+; Link with: ld -m elf_x86_64 unlink.o -o unlink
+; Run with: ./unlink
+ 
+%include    'functions.asm'
+ 
+SECTION .data
+filename db 'readme.txt', 0h    ; the filename to delete
+ 
+SECTION .text
+global  _start
+ 
+_start:
+ 
+    mov     rdi, filename       ; filename we will delete
+    mov     rax, 87             ; invoke SYS_UNLINK (kernel opcode 87)
+    syscall                     ; call the kernel
+ 
+    call    quit                ; call our quit function
+```
 ## lesson-29
 Sockets - Create
 
