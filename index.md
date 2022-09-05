@@ -1906,8 +1906,6 @@ _start:
 ## lesson-26
 File Handling - Close
 
-File Handling - Seek
-
 Building upon the previous lesson we will now use sys_close to properly close an open file.
 
 sys_close expects 1 argument - the file descriptor in RDI. We will use the previous lessons code to obtain the file descriptor which we will then load into RDI. The sys_close opcode is then loaded into RAX and the kernel is called to close the file and remove the active file descriptor.
