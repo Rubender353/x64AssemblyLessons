@@ -1565,6 +1565,27 @@ FizzBuzz
 ## lesson-19
 Execute Command
 
+Firstly, some background
+
+The EXEC family of functions replace the currently running process with a new process, that executes the command you specified when calling it. We will be using the SYS_EXECVE function in this lesson to replace our program's running process with a new process that will execute the linux program /bin/echo to print out “Hello World!”.
+
+Naming convention
+
+The naming convention used for this family of functions is exec (execute) followed by one or more of the following. https://man7.org/linux/man-pages/man3/exec.3.html shows the convention information. In this case we are using execve which has 3 arguments.
+
+int execve(const char *pathname, char *const argv[],
+                  char *const envp[]);
+    
+    1 - Uses the PATH environment variable to find the file named in the path argument to be executed.
+    2 - Command-line arguments are passed to the function as an array of pointers.
+    3 - An array of pointers to environment variables is explicitly passed to the new process image.
+
+Writing our program
+
+We will need to pass our arguments in the following format: The first argument is a string containing the command to execute, then an array of arguments to pass to that command and then another array of environment variables that the new process will use. As we are calling a simple command we won't pass any special environment variables to the new process and instead will pass 0h (null). Refer to this https://chromium.googlesource.com/chromiumos/docs/+/master/constants/syscalls.md#x86_64-64_bit . We will need to use system call 59 to call execve. This requires the 3 arguments to be put in the following registers rdi, rsi, and rdx. Also x86 assembly you could use dd size for pointer struct, however in x64 you have to use dq.
+
+Both the command arguments and the environment arguments need to be passed as an array of pointers (addresses to memory). That's why we define our strings first and then define a simple null-terminated struct (array) of the variables names. This is then passed to SYS_EXECVE. We call the function and the process is replaced by our command and output is returned to the terminal.
+
 execute.asm
 ```
 ; Execute
@@ -1575,12 +1596,12 @@ execute.asm
 %include        'functions.asm'
  
 SECTION .data
-command         db      '/bin/echo', 0h     ; command to execute
+command         db      '/bin/echo', 0h     ; command to execute. Note db is a byte if your path is too long you may need to use something like dq
 arg1            db      'Hello World!', 0h
-arguments       dd      command
-                dd      arg1                ; arguments to pass to commandline (in this case just one)
-                dd      0h                  ; end the struct
-environment     dd      0h                  ; arguments to pass as environment variables (inthis case none) end the struct
+arguments       dq      command
+                dq      arg1                ; arguments to pass to commandline (in this case just one)
+                dq      0h                  ; end the struct
+environment     dq      0h                  ; arguments to pass as environment variables (inthis case none) end the struct
  
 SECTION .text
 global  _start
@@ -1595,6 +1616,21 @@ _start:
  
     call    quit                ; call our quit function
 ```
+Note: Here are a couple other commands to try.
+
+execute.asm
+```
+SECTION .data
+command         db      '/bin/ls', 0h       ; command to execute
+arg1            db      '-l', 0h
+```
+execute.asm
+```
+SECTION .data
+command         db      '/bin/sleep', 0h    ; command to execute
+arg1            db      '5', 0h
+```
+
 
 ## lesson-20
 Process Forking
