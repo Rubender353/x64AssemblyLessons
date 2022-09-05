@@ -1853,7 +1853,7 @@ Building upon the previous lesson we will now use sys_read to read the content o
 
 sys_read expects 3 arguments - the number of bytes to read in RDX, the memory address of our variable in RSI and the [file descriptor](https://en.wikipedia.org/wiki/File_descriptor) in RDI. We will use the previous lessons sys_open code to obtain the file descriptor which we will then load into RDI. The sys_read opcode is then loaded into RAX and the kernel is called to read the file contents into our variable and is then printed to the screen.
 
-Note: We will reserve 255 bytes in the .bss section to store the contents of the file. [See Lesson 9 for more information on the .bss section.]() 
+Note: We will reserve 255 bytes in the .bss section to store the contents of the file. [See Lesson 9 for more information on the .bss section.](#lesson-9) 
 
 read.asm
 ```
@@ -1906,9 +1906,106 @@ _start:
 ## lesson-26
 File Handling - Close
 
+File Handling - Seek
+
+Building upon the previous lesson we will now use sys_close to properly close an open file.
+
+sys_close expects 1 argument - the file descriptor in RDI. We will use the previous lessons code to obtain the file descriptor which we will then load into RDI. The sys_close opcode is then loaded into RAX and the kernel is called to close the file and remove the active file descriptor.
+
+close.asm
+```
+; Close
+; Compile with: nasm -f elf64 close.asm
+; Link with: ld -m elf_x86_64 close.o -o close
+; Run with: ./close
+ 
+%include    'functions.asm'
+ 
+SECTION .data
+filename db 'readme.txt', 0h    ; the filename to create
+contents db 'Hello world!', 0h  ; the contents to write
+
+SECTION .bss
+fileContents resb 255,          ; variable to store file contents
+
+SECTION .text
+global  _start
+ 
+_start:
+ 
+    mov     rsi, 0777o          ; Create file from lesson 22
+    mov     rdi, filename
+    mov     rax, 85
+    syscall
+ 
+    mov     rdx, 12             ; Write contents to file from lesson 23
+    mov     rsi, contents
+    mov     rdi, rax
+    mov     rax, 1
+    syscall
+ 
+    mov     rsi, 0              ; Open file from lesson 24
+    mov     rdi, filename
+    mov     rax, 2
+    syscall
+ 
+    mov     rdx, 12             ; Read file from lesson 25
+    mov     rsi, fileContents
+    mov     rdi, rax
+    mov     rax, 0
+    syscall                     
+ 
+    mov     rax, fileContents
+    call    sprintLF
+ 
+    mov     rdi, rdi            ; not needed but used to demonstrate that SYS_CLOSE takes a file descriptor from rdi
+    mov     rax, 3              ; invoke SYS_CLOSE (kernel opcode 3)
+    syscall                     ; call the kernel
+ 
+    call    quit                ; call our quit function
+```
+
 ## lesson-27
 File Handling - Seek
 
+In this lesson we will open a file and update the file contents at the end of the file using sys_lseek.
+
+Using sys_lseek you can move the cursor within the file by an offset in bytes. The below example will move the cursor to the end of the file, then pass 0 bytes as the offset (so we append to the end of the file and not beyond) before writing a string in that position. Try different values in RSI and RDX to write the content to different positions within the opened file.
+
+sys_lseek expects 3 arguments - the whence argument (table below) in RDX, the offset in bytes in RSI, and the file descriptor in RDI. The sys_lseek opcode is then loaded into RAX and we call the kernel to move the file pointer to the correct offset. We then use sys_write to update the content at that position.
+	
+<table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th></th>
+                                            <th>Description</th>
+                                            <th>Value</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td><b>SEEK_SET</b></td>
+                                            <td>beginning of the file</td>
+                                            <td>0</td>
+                                        </tr>
+                                        <tr>
+                                            <td><b>SEEK_CUR</b></td>
+                                            <td>current file offset</td>
+                                            <td>1</td>
+                                        </tr>
+                                        <tr>
+                                            <td><b>SEEK_END</b></td>
+                                            <td>end of the file</td>
+                                            <td>2</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+
+Note: A file 'readme.txt' has been included in the code folder for this lesson. This file will be updated after running the program. You could also use the helloworld readme.txt from earlier lessons, or make your own readme.txt file.
+
+```
+
+```
 ## lesson-28
 File Handling - Delete
 
