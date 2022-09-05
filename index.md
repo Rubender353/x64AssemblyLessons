@@ -550,11 +550,11 @@ quit:
     syscall
     ret
 ```
-helloworld-inc64.asm
+helloworld-lf.asm
 ```
 ; Hello World Program (External file include)
-; Compile with: nasm -f elf64 helloworld-inc64.asm
-; Link with: ld -m elf_x86_64 helloworld-inc64.o -o helloworld-inc64
+; Compile with: nasm -f elf64 helloworld-lf.asm
+; Link with: ld -m elf_x86_64 helloworld-lf.o -o helloworld-lf
 ; Run with: ./helloworld-inc64
  
 %include        'functions.asm'
@@ -577,9 +577,9 @@ _start:
     call    quit
 ```
 ```
-nasm -f elf64 helloworld-inc64.asm
-ld -m elf_x86_64 helloworld-inc64.o -o helloworld-inc64
-./helloworld-inc64
+nasm -f elf64 helloworld-lf.asm
+ld -m elf_x86_64 helloworld-lf.o -o helloworld-lf
+./helloworld-lf
 Hello, brave new world!
 This is how we recycle in NASM.
 ```
@@ -1596,7 +1596,7 @@ execute.asm
 %include        'functions.asm'
  
 SECTION .data
-command         db      '/bin/echo', 0h     ; command to execute. Note db is a byte if your path is too long you may need to use something like dq
+command         db      '/bin/echo', 0h     ; command to execute
 arg1            db      'Hello World!', 0h
 arguments       dq      command
                 dq      arg1                ; arguments to pass to commandline (in this case just one)
@@ -1630,10 +1630,53 @@ SECTION .data
 command         db      '/bin/sleep', 0h    ; command to execute
 arg1            db      '5', 0h
 ```
-
-
 ## lesson-20
 Process Forking
+
+Firstly, some background
+
+In this lesson we will use SYS_FORK to create a new process that duplicates our current process. SYS_FORK takes no arguments - you just call fork and the new process is created. Both processes run concurrently. We can test the return value (in eax) to test whether we are currently in the parent or child process. The parent process returns a non-negative, non-zero integer. In the child process EAX is zero. This can be used to branch your logic between the parent and child.
+
+In our program we exploit this fact to print out different messages in each process.
+
+Note: Each process is responsible for safely exiting. 
+
+fork.asm
+```
+; Fork
+; Compile with: nasm -f elf64  fork.asm
+; Link with: ld -m elf_x86_64 fork.o -o fork
+; Run with: ./fork
+ 
+%include        'functions.asm'
+ 
+SECTION .data
+childMsg        db      'This is the child process', 0h     ; a message string
+parentMsg       db      'This is the parent process', 0h    ; a message string
+ 
+SECTION .text
+global  _start
+ 
+_start:
+ 
+    mov     rax, 57              ; invoke SYS_FORK (kernel opcode 57)
+    syscall
+ 
+    cmp     rax, 0              ; if rax is zero we are in the child process
+    jz      child               ; jump if rax is zero to child label
+ 
+parent:
+    mov     rax, parentMsg      ; inside our parent process move parentMsg into rax
+    call    sprintLF            ; call our string printing with linefeed function
+ 
+    call    quit                ; quit the parent process
+ 
+child:
+    mov     rax, childMsg       ; inside our child process move childMsg into rax
+    call    sprintLF            ; call our string printing with linefeed function
+ 
+    call    quit                ; quit the child process
+```
 
 ## lesson-21
 Telling the time
