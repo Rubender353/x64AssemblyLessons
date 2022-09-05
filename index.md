@@ -1635,7 +1635,7 @@ Process Forking
 
 Firstly, some background
 
-In this lesson we will use SYS_FORK to create a new process that duplicates our current process. SYS_FORK takes no arguments - you just call fork and the new process is created. Both processes run concurrently. We can test the return value (in eax) to test whether we are currently in the parent or child process. The parent process returns a non-negative, non-zero integer. In the child process EAX is zero. This can be used to branch your logic between the parent and child.
+In this lesson we will use SYS_FORK to create a new process that duplicates our current process. SYS_FORK takes no arguments - you just call fork and the new process is created. Both processes run concurrently. We can test the return value (in rax) to test whether we are currently in the parent or child process. The parent process returns a non-negative, non-zero integer. In the child process RAX is zero. This can be used to branch your logic between the parent and child.
 
 In our program we exploit this fact to print out different messages in each process.
 
@@ -1680,6 +1680,261 @@ child:
 
 ## lesson-21
 Telling the time
+
+Generating a unix timestamp in NASM is easy with the SYS_TIME function of the linux kernel. Simply pass OPCODE 200 to the kernel with no arguments and you are returned the Unix Epoch in the EAX register.
+
+That is the number of seconds that have elapsed since January 1st 1970 UTC.
+
+time.asm
+```
+; Time
+; Compile with: nasm -f elf64 time.asm
+; Link with: ld -m elf_x86_64 time.o -o time
+; Run with: ./time
+ 
+%include        'functions.asm'
+ 
+SECTION .data
+msg        db      'Seconds since Jan 01 1970: ', 0h     ; a message string
+ 
+SECTION .text
+global  _start
+ 
+_start:
+ 
+    mov     rax, msg        ; move our message string into rax for printing
+    call    sprint          ; call our string printing function
+ 
+    mov     rax, 200        ; invoke SYS_TIME (kernel opcode 200)
+    syscall                 ; call the kernel
+ 
+    call    iprintLF        ; call our integer printing function with linefeed
+    call    quit            ; call our quit function
+```
+
+## lesson-22
+File Handling - Create
+Firstly, some background
+
+File Handling in Linux is achieved through a small number of system calls related to creating, updating and deleting files. These functions require a file descriptor which is a unique, non-negative integer that identifies the file on the system.
+Writing our program
+
+We begin the tutorial by creating a file using sys_creat. We will then build upon our program in each of the following file handling lessons, adding code as we go. Eventually we will have a full program that can create, update, open, close and delete files.
+
+sys_creat expects 2 arguments - the file permissions in RSI and the filename in RDI. The sys_creat opcode is then loaded into RAX and the kernel is called to create the file. The file descriptor of the created file is returned in RAX. This file descriptor can then be used for all other file handling functions.
+
+create.asm
+```
+; Create
+; Compile with: nasm -f elf64 create.asm
+; Link with: ld -m elf_x86_64 create.o -o create
+; Run with: ./create
+ 
+%include    'functions.asm'
+ 
+SECTION .data
+filename db 'readme.txt', 0h    ; the filename to create
+ 
+SECTION .text
+global  _start
+ 
+_start:
+ 
+    mov     rsi, 0777o          ; set all permissions to read, write, execute
+    mov     rdi, filename       ; filename we will create
+    mov     rax, 85              ; invoke SYS_CREAT (kernel opcode 85)
+    syscall                     ; call the kernel
+ 
+    call    quit                ; call our quit function
+```
+## lesson-23
+File Handling - Write
+
+Building upon the previous lesson we will now use sys_write to write content to a newly created file.
+
+sys_write expects 3 arguments - the number of bytes to write in RDX, the contents string to write in RSI and the file descriptor in RDI. The sys_write opcode is then loaded into RAX and the kernel is called to write the content to the file. In this lesson we will first call sys_creat to get a file descriptor which we will then load into RDI.
+
+write.asm
+```
+; Write
+; Compile with: nasm -f elf64  write.asm
+; Link with: ld -m elf_x86_64 write.o -o write
+; Run with: ./write
+ 
+%include    'functions.asm'
+ 
+SECTION .data
+filename db 'readme.txt', 0h    ; the filename to create
+contents db 'Hello world!', 0h  ; the contents to write
+ 
+SECTION .text
+global  _start
+ 
+_start:
+ 
+    mov     rsi, 0777o          ; code continues from lesson 22
+    mov     rdi, filename
+    mov     rax, 85
+    syscall
+ 
+    mov     rdx, 12             ; number of bytes to write - one for each letter of our contents string
+    mov     rsi, contents       ; move the memory address of our contents string into rsi
+    mov     rdi, rax            ; move the file descriptor of the file we created into rdi
+    mov     rax, 1              ; invoke SYS_WRITE (kernel opcode 4)
+    syscall                     ; call the kernel
+ 
+    call    quit                ; call our quit function
+```
+After compiling and running. Cat command will show the contents of file
+```
+$ nasm -f elf64  write.asm
+$ ld -m elf_x86_64 write.o -o write 
+$ ./write                           
+$ cat readme.txt 
+Hello world!
+```
+
+## lesson-24
+File Handling - Open
+
+Building upon the previous lesson we will now use sys_open to obtain the [file descriptor](https://en.wikipedia.org/wiki/File_descriptor) of the newly created file. This file descriptor can then be used for all other file handling functions.
+
+sys_open expects 2 arguments - the access mode (table below) in RSI and the filename in RDI. The sys_open opcode is then loaded into RAX and the kernel is called to open the file and return the file descriptor.
+
+sys_open additionally accepts zero or more file creation flags and file status flags in RDX. [Click here for more information about the access mode, file creation flags and file status flags.](https://man7.org/linux/man-pages/man2/open.2.html)
+	Description 	Value
+- O_RDONLY 	open file in read only mode 	0
+- O_WRONLY 	open file in write only mode 	1
+- O_RDWR 	open file in read and write mode 	2
+
+Note: sys_open returns the file descriptor in RAX. On linux this will be a unique, non-negative integer which we will print using our integer printing function. 
+
+open.asm
+```
+; Open
+; Compile with: nasm -f elf64 open.asm
+; Link with: ld -m elf_x86_64 open.o -o open
+; Run with: ./open
+ 
+%include    'functions.asm'
+ 
+SECTION .data
+filename db 'readme.txt', 0h    ; the filename to create
+contents db 'Hello world!', 0h  ; the contents to write
+ 
+SECTION .text
+global  _start
+ 
+_start:
+ 
+    mov     rsi, 0777o          ; Create file from lesson 22
+    mov     rdi, filename
+    mov     rax, 85
+    syscall
+ 
+    mov     rdx, 12             ; Write contents to file from lesson 23
+    mov     rsi, contents
+    mov     rdi, rax
+    mov     rax, 1
+    syscall
+ 
+    mov     rsi, 0              ; flag for readonly access mode (O_RDONLY)
+    mov     rdi, filename       ; filename we created above
+    mov     rax, 2              ; invoke SYS_OPEN (kernel opcode 2)
+    syscall                     ; call the kernel
+ 
+    call    iprintLF            ; call our integer printing function
+    call    quit                ; call our quit function
+```
+## lesson-25
+File Handling - Read
+
+Building upon the previous lesson we will now use sys_read to read the content of a newly created and opened file. We will store this string in a variable.
+
+sys_read expects 3 arguments - the number of bytes to read in RDX, the memory address of our variable in RSI and the [file descriptor](https://en.wikipedia.org/wiki/File_descriptor) in RDI. We will use the previous lessons sys_open code to obtain the file descriptor which we will then load into RDI. The sys_read opcode is then loaded into RAX and the kernel is called to read the file contents into our variable and is then printed to the screen.
+
+Note: We will reserve 255 bytes in the .bss section to store the contents of the file. [See Lesson 9 for more information on the .bss section.]() 
+
+read.asm
+```
+; Read
+; Compile with: nasm -f elf64 read.asm
+; Link with: ld -m elf_x86_64 read.o -o read
+; Run with: ./read
+ 
+%include    'functions.asm'
+ 
+SECTION .data
+filename db 'readme.txt', 0h    ; the filename to create
+contents db 'Hello world!', 0h  ; the contents to write
+
+SECTION .bss
+fileContents resb 255,          ; variable to store file contents
+
+SECTION .text
+global  _start
+ 
+_start:
+ 
+    mov     rsi, 0777o          ; Create file from lesson 22
+    mov     rdi, filename
+    mov     rax, 85
+    syscall
+ 
+    mov     rdx, 12             ; Write contents to file from lesson 23
+    mov     rsi, contents
+    mov     rdi, rax
+    mov     rax, 1
+    syscall
+ 
+    mov     rsi, 0              ; Open file from lesson 24
+    mov     rdi, filename
+    mov     rax, 2
+    syscall
+ 
+    mov     rdx, 12             ; number of bytes to read - one for each letter of the file contents
+    mov     rsi, fileContents   ; move the memory address of our file contents variable into rsi
+    mov     rdi, rax            ; move the opened file descriptor into rdi
+    mov     rax, 0              ; invoke SYS_READ (kernel opcode 0)
+    syscall                     ; call the kernel
+ 
+    mov     rax, fileContents   ; move the memory address of our file contents variable into rax for printing
+    call    sprintLF            ; call our string printing function
+ 
+    call    quit                ; call our quit function
+```
+## lesson-26
+File Handling - Close
+
+## lesson-27
+File Handling - Seek
+
+## lesson-28
+File Handling - Delete
+
+## lesson-29
+Sockets - Create
+
+## lesson-30
+Sockets - Bind
+
+## lesson-31
+Sockets - Listen
+
+## lesson-32
+Sockets - Accept
+
+## lesson-33
+Sockets - Read
+
+## lesson-34
+Sockets - Write
+
+## lesson-35
+Sockets - Close
+
+## lesson-36
+Download a Webpage
 
 ```
 markdown
