@@ -2072,10 +2072,64 @@ _start:
 ```
 ## lesson-29
 Sockets - Create
+Firstly, some background
 
+Socket Programming in Linux is achieved through the use of the SYS_SOCKETCALL kernel function. The SYS_SOCKETCALL function is somewhat unique in that it encapsulates a number of different subroutines, all related to socket operations, within the one function. By passing different integer values in EBX we can change the behaviour of this function to create, listen, send, receive, close and more. [Click here]() to view the full commented source code of the completed program in x86. These tutorials are for x64 assembly so we wo;; use SYS_SOCKET instead more information on it can be found [here]()
+
+Writing our program
+
+We begin the tutorial by first initalizing some of our registers which we will use later to store important values. We will then create a socket using the 3 parameters SYS_SOCKET require. We will then build upon our program in each of the following socket programming lessons, adding code as we go. Eventually we will have a full program that can create, bind, listen, accept, read, write and close sockets.
+
+SYS_SOCKETCALL expects 3 arguments - a domain in RDI in this case we will use AF_INET for IPv4 communication. Next we will specify the type in RSI, which will be 1 for SOCK_STREAM. Finally the third parameter is the protocol which matches up the the RFC 791 numbers for IPv4. In this case for TCP it is the number 6 to be stored into the RDX register. More info on the numbers can be [found here]()  Finally the SYS_SOCKET opcode 41 is then loaded into RAX and the kernel is called to create the socket. Because everything in linux is a file, we recieve back the file descriptor of the created socket in RAX. This file descriptor can then be used for performing other socket programming functions.
+
+Note: XORing a register by itself is an efficent way of ensuring the register is initalised with the integer value zero and doesn't contain an unexpected value that could corrupt your program. 
+
+socket.asm
+```
+; Socket
+; Compile with: nasm -f elf64 socket.asm
+; Link with: ld -m elf_x86_64 socket.o -o socket
+; Run with: ./socket
+ 
+%include    'functions.asm'
+ 
+SECTION .text
+global  _start
+ 
+_start:
+ 
+    xor     rax, rax            ; init rax 0
+    xor     rdx, rdx            ; init rbx 0
+    xor     rdi, rdi            ; init rdi 0
+    xor     rsi, rsi            ; init rsi 0
+ 
+_socket:
+ 
+    mov     rdi, 3              ; move 3 into rdi for domain (AF_NET)
+    mov     rsi, 1              ; move 1 into rsi for type (SOCK_STREAM)
+    mov     rdx, 6              ; move into rdx for protocol 6 TCP (IPPROTO_TCP)
+    mov     rax, 41             ; invoke SYS_SOCKET (kernel opcode 41)
+    syscall                     ; call the kernel
+ 
+    call    iprintLF            ; call our integer printing function (print the file descriptor in rax or -1 on error)
+ 
+_exit:
+ 
+    call    quit                ; call our quit function
+```
 ## lesson-30
 Sockets - Bind
 
+Building on the previous lesson we will now associate the created socket with a local IP address and port which will allow us to connect to it. We do this by calling the bind syscall 49.
+
+We begin by storing the file descriptor we recieved in lesson 29 into RDI. RDI which in x86 is called EDI was originally called the Destination Index and is traditionally used in copy routines to store the location of a target file.
+
+SYS_BIND requires 3 parameters. RDI which will store the file descriptor. RSI which requires a structure in struct sockaddr* format. RDX stores the size. The structure for the second parameter addr will depend on the address family. If you want to find out more info about bind [click here](https://man7.org/linux/man-pages/man2/bind.2.html). In this case we are using TCP/IP protocol 6. Finally The SYS_BIND opcode 49 is then loaded into RAX and the kernel is called to bind the socket.
+
+socket.asm
+```
+
+```
 ## lesson-31
 Sockets - Listen
 
