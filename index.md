@@ -2128,13 +2128,159 @@ SYS_BIND requires 3 parameters. RDI which will store the file descriptor. RSI wh
 
 socket.asm
 ```
+; Socket
+; Compile with: nasm -f elf64 socket.asm
+; Link with: ld -m elf_x86_64 socket.o -o socket
+; Run with: ./socket
+ 
+%include    'functions.asm'
+ 
+SECTION .text
+global  _start
+ 
+_start:
+ 
+    xor     rax, rax            ; initialize some registers
+    xor     rdx, rdx
+    xor     rdi, rdi
+    xor     rsi, rsi
+ 
+_socket:
+ 
+    mov     rdi, 2              ; create socket from lesson 29
+    mov     rsi, 1
+    mov     rdx, 0
+    mov     rax, 41
+    syscall
 
+_bind:
+ 
+    mov     rdi, rax            ; move return value of SYS_SOCKET into rdi (file descriptor for new socket, or -1 on error)
+    push    dword 0x00000000    ; push 0 dec onto the stack IP ADDRESS (0.0.0.0)
+    push    word 0x2923         ; push 9001 dec onto stack PORT (reverse byte order)
+    push    word 2              ; push 2 dec onto stack AF_INET
+    mov     rsi, rsp            ; move address of stack pointer into rsi
+    add     rdx, 16             ; push 16 dec into rdx for size (arguments length)
+    mov     rax, 49             ; invoke SYS_BIND (kernel opcode 49)
+    syscall                     ; call the kernel
+
+_exit:
+ 
+    call    quit                ; call our quit function
 ```
 ## lesson-31
 Sockets - Listen
+In the previous lessons we created a socket and used 'bind' to associate it with a local IP address and port. In this lesson we will use the sys_listen systemcall to tell our socket to listen for incoming TCP requests. This will allow us to read and write to anyone who connects to our socket.
 
+SYS_LISTEN expects 2 arguments - sockfd which is a file descriptor in RDI and the backlog integer in RSI. More info on the syscall can be found [here](https://man7.org/linux/man-pages/man2/listen.2.html) We will pass our file descriptor to RDI. Next put value 4 RSI for the backlog queue. The SYS_LISTEN opcode is then loaded into RAX and the kernel is called. If succesful the socket will begin listening for incoming requests.
+
+socket.asm
+```
+; Socket
+; Compile with: nasm -f elf64 socket.asm
+; Link with: ld -m elf_x86_64 socket.o -o socket
+; Run with: ./socket
+ 
+%include    'functions.asm'
+ 
+SECTION .text
+global  _start
+ 
+_start:
+ 
+    xor     rax, rax            ; initialize some registers
+    xor     rdx, rdx
+    xor     rdi, rdi
+    xor     rsi, rsi
+ 
+_socket:
+ 
+    mov     rdi, 2              ; create socket from lesson 29
+    mov     rsi, 1
+    mov     rdx, 0
+    mov     rax, 41
+    syscall
+
+_bind:
+ 
+    mov     rdi, rax            ; bind socket from lesson 30
+    push    dword 0x00000000
+    push    word 0x2923
+    push    word 2
+    mov     rsi, rsp
+    add     rdx, 16
+    mov     rax, 49
+    syscall
+
+_listen:
+    mov     rsi, 4              ; rdi is already set from _socket and _bind. So set backlog arg (4)
+    mov     rax, 50             ; invoke SYS_LISTEN (kernel opcode 50)
+    syscall                     ; call the kernel
+
+_exit:
+ 
+    call    quit                ; call our quit function
+```
 ## lesson-32
 Sockets - Accept
+In the previous lessons we created a socket and used the SYS_BIND syscall to associate it with a local IP address and port. We then used the SYS_LISTEN syscall to tell our socket to listen for incoming TCP requests. Now we will use the SYS_ACCEPT syscall to tell our socket to accept those incoming requests. Our socket will then be ready to read and write to remote connections.
+
+SYS_ACCEPT's syscall expects 3 arguments - A file descriptor sockfd in RDI. A pointer *addr to a structure in RSI. And the length addrLen in RDX. The SYS_ACCEPT opcode 43 is then loaded into RAX and the kernel is called. Note earlier in our lessons we created the structure as an array in RSI. This time we can reuse the values in RSI and RDI (rdi file descriptor). The 'accept' syscall will create another file descriptor, this time identifying the incoming socket connection. We will later use this file descriptor to read and write to the incoming connection in later lessons.
+
+Note: Run the program and use the command sudo netstat -plnt in another terminal to view the socket listening on port 9001. 
+
+socket.asm
+```
+; Socket
+; Compile with: nasm -f elf64 socket.asm
+; Link with: ld -m elf_x86_64 socket.o -o socket
+; Run with: ./socket
+ 
+%include    'functions.asm'
+ 
+SECTION .text
+global  _start
+ 
+_start:
+ 
+    xor     rax, rax            ; initialize some registers
+    xor     rdx, rdx
+    xor     rdi, rdi
+    xor     rsi, rsi
+ 
+_socket:
+ 
+    mov     rdi, 2              ; create socket from lesson 29
+    mov     rsi, 1
+    mov     rdx, 0
+    mov     rax, 41
+    syscall
+
+_bind:
+ 
+    mov     rdi, rax            ; bind socket from lesson 30
+    push    dword 0x00000000
+    push    word 0x2923
+    push    word 2
+    mov     rsi, rsp
+    add     rdx, 16
+    mov     rax, 49
+    syscall
+
+_listen:
+    mov     rsi, 4              ; bind socket from lesson 31
+    mov     rax, 50
+    syscall
+
+_accept:
+    mov     rdx, rsi            ; rdi & rsi already setup. move rsi into rdx to set length
+    mov     rax, 43             ; invoke SYS_ACCEPT (kernel opcode 43)
+    syscall                     ; call the kernel
+
+_exit:
+ 
+    call    quit                ; call our quit function
+```
 
 ## lesson-33
 Sockets - Read
