@@ -2124,7 +2124,7 @@ Building on the previous lesson we will now associate the created socket with a 
 
 We begin by storing the file descriptor we recieved in lesson 29 into RDI. RDI which in x86 is called EDI was originally called the Destination Index and is traditionally used in copy routines to store the location of a target file.
 
-SYS_BIND requires 3 parameters. RDI which will store the file descriptor. RSI which requires a structure in struct sockaddr* format. RDX stores the size. The structure for the second parameter addr will depend on the address family. If you want to find out more info about bind [click here](https://man7.org/linux/man-pages/man2/bind.2.html). In this case we are using TCP/IP protocol 6. Finally The SYS_BIND opcode 49 is then loaded into RAX and the kernel is called to bind the socket.
+SYS_BIND requires 3 parameters. RDI which will store the file descriptor. RSI which requires a structure in struct sockaddr* format. RDX stores the size. The structure for the second parameter addr will depend on the address family. If you want to find out more info about bind [click here](https://man7.org/linux/man-pages/man2/bind.2.html). In this case we are using TCP/IP protocol 6. Finally The SYS_BIND opcode 49 is then loaded into RAX and the kernel is called to bind the socket. Also we have to save our parent fd, becuase in our next lessons fork will open a new file descriptor for future connections. This will create a situation where exiting the child process won't necessarily keep the parent file descriptor saved. So to fix this we store it in r9 register.
 
 socket.asm
 ```
@@ -2159,6 +2159,7 @@ _bind:
     push    dword 0x00000000    ; push 0 dec onto the stack IP ADDRESS (0.0.0.0)
     push    word 0x2923         ; push 9001 dec onto stack PORT (reverse byte order)
     push    word 2              ; push 2 dec onto stack AF_INET
+    mov     r9, rdi             ; store rdi in r9 to save parent file descriptor
     mov     rsi, rsp            ; move address of stack pointer into rsi
     add     rdx, 16             ; push 16 dec into rdx for size (arguments length)
     mov     rax, 49             ; invoke SYS_BIND (kernel opcode 49)
@@ -2207,7 +2208,8 @@ _bind:
     push    dword 0x00000000
     push    word 0x2923
     push    word 2
-    mov     rsi, rsp
+    mov     r9, rdi
+    mov     rsi,rsp
     add     rdx, 16
     mov     rax, 49
     syscall
@@ -2225,7 +2227,7 @@ _exit:
 Sockets - Accept
 In the previous lessons we created a socket and used the SYS_BIND syscall to associate it with a local IP address and port. We then used the SYS_LISTEN syscall to tell our socket to listen for incoming TCP requests. Now we will use the SYS_ACCEPT syscall to tell our socket to accept those incoming requests. Our socket will then be ready to read and write to remote connections.
 
-SYS_ACCEPT's syscall expects 3 arguments - A file descriptor sockfd in RDI. A pointer *addr to a structure in RSI. And the length addrLen in RDX. The SYS_ACCEPT opcode 43 is then loaded into RAX and the kernel is called. Note earlier in our lessons we created the structure as an array in RSI. This time we can reuse the values in RSI and RDI (rdi file descriptor). The 'accept' syscall will create another file descriptor, this time identifying the incoming socket connection. We will later use this file descriptor to read and write to the incoming connection in later lessons.
+SYS_ACCEPT's syscall expects 3 arguments - A file descriptor sockfd in RDI. A pointer *addr to a structure in RSI. And the length addrLen in RDX. The SYS_ACCEPT opcode 43 is then loaded into RAX and the kernel is called. Note earlier in our lessons we created the structure as an array in RSI. This time we can reuse the values in RSI and RDI (rdi file descriptor). The 'accept' syscall will create another file descriptor, this time identifying the incoming socket connection. We will later use this file descriptor to read and write to the incoming connection in later lessons. In x64 we have to store the file descriptor that 'accept' creates elsewhere. In this case we store RDI in R9 
 
 Note: Run the program and use the command sudo netstat -plnt in another terminal to view the socket listening on port 9001. 
 
@@ -2262,7 +2264,8 @@ _bind:
     push    dword 0x00000000
     push    word 0x2923
     push    word 2
-    mov     rsi, rsp
+    mov     r9, rdi
+    mov     rsi,rsp
     add     rdx, 16
     mov     rax, 49
     syscall
@@ -2273,8 +2276,10 @@ _listen:
     syscall
 
 _accept:
-    mov     rdx, rsi            ; rdi & rsi already setup. move rsi into rdx to set length
-    mov     rax, 43             ; invoke SYS_ACCEPT (kernel opcode 43)
+    xor     rsi, rsi            ; clear rsi
+    mov     rdi, r9             ; r9 which has parent fd put into rdi. prevents fork loop error
+    mov     rdx, rsi            ; accept socket from lesson 32
+    mov     rax, 43
     syscall                     ; call the kernel
 
 _exit:
@@ -2285,12 +2290,208 @@ _exit:
 ## lesson-33
 Sockets - Read
 
+When an incoming connection is accepted by our socket, a new file descriptor identifying the incoming socket connection is returned in RAX. In this lesson we will use this file descriptor to read the incoming request headers from the connection.
+
+We begin by storing the file descriptor we recieved in lesson 32 into RDI. ESI was originally called the Source Index and is traditionally used in copy routines to store the location of a target file. In the 32-bit code we would have used ESI. ESI is RSI in 64-bit however it is used as argument 1. In earlier lessons we stored the parent fd in register R9, so using RDI in fork will be fine.
+
+We will use the kernel function sys_read to read from the incoming socket connection. As we have done in previous lessons, we will create a variable to store the contents being read from the file descriptor. Our socket will be using the HTTP protocol to communicate. Parsing HTTP request headers to determine the length of the incoming message and accepted response formats is beyond the scope of this tutorial. We will instead just read up to the first 255 bytes and print that to standardout.
+
+Once the incoming connection has been accepted, it is very common for webservers to spawn a child process to manage the read/write communication. The parent process is then free to return to the listening/accept state and accept any new incoming requests in parallel. We will implement this design pattern below using SYS_FORK and the JMP instruction prior to reading the request headers in the child process.
+
+To generate valid request headers we will use the commandline tool curl to connect to our listening socket. But you can also use a standard web browser to connect in the same way.
+
+sys_read expects 3 arguments - the number of bytes to read in RDX, the memory address of our variable in RSI and the file descriptor in RDI. The sys_read opcode is then loaded into RAX and the kernel is called to read the contents into our variable which is then printed to the screen.
+
+Note: We will reserve 255 bytes in the .bss section to store the contents being read from the file descriptor. See Lesson 9 for more information on the .bss section.
+
+Note: Run the program and use the command curl http://localhost:9001 in another terminal to view the request headers being read by our program.
+
+socket.asm
+```
+; Socket
+; Compile with: nasm -f elf64 socket.asm
+; Link with: ld -m elf_x86_64 socket.o -o socket
+; Run with: ./socket
+ 
+%include    'functions.asm'
+
+SECTION .bss
+buffer resb 255,                ; variable to store request headers
+ 
+SECTION .text
+global  _start
+
+_start:
+ 
+    xor     rax, rax            ; initialize some registers
+    xor     rdx, rdx
+    xor     rdi, rdi
+    xor     rsi, rsi
+ 
+_socket:
+ 
+    mov     rdi, 2              ; create socket from lesson 29
+    mov     rsi, 1
+    mov     rdx, 0
+    mov     rax, 41
+    syscall
+
+_bind:
+ 
+    mov     rdi, rax            ; bind socket from lesson 30
+    push    dword 0x00000000
+    push    word 0x2923
+    push    word 2
+    mov     r9, rdi
+    mov     rsi,rsp
+    add     rdx, 16
+    mov     rax, 49
+    syscall
+
+_listen:
+    mov     rsi, 4              ; bind socket from lesson 31
+    mov     rax, 50
+    syscall
+
+_accept:
+    xor     rsi, rsi            ; accept socket from lesson 32
+    mov     rdi, r9
+    mov     rdx, rsi
+    mov     rax, 43
+    syscall
+    
+_fork:
+ 
+    mov     rdi, rax            ; move return value of SYS_SOCKET into rdi (file descriptor for accepted socket, or -1 on error)
+    mov     rax, 57             ; invoke SYS_FORK (kernel opcode 57)
+    syscall                     ; call the kernel
+ 
+    cmp     rax, 0              ; if return value of SYS_FORK in rax is zero we are in the child process
+    jz      _read               ; jmp in child process to _read
+ 
+    jmp     _accept             ; jmp in parent process to _accept
+ 
+_read:
+    mov     rdx, 255            ; number of bytes to read (we will only read the first 255 bytes for simplicity)
+    mov     rsi, buffer         ; move the memory address of our buffer variable into rsi
+    mov     rax, 0              ; invoke SYS_READ (kernel opcode 0)
+    syscall                     ; call the kernel
+ 
+    mov     rax, buffer         ; move the memory address of our buffer variable into rax for printing
+    call    sprintLF            ; call our string printing function
+
+_exit:
+ 
+    call    quit                ; call our quit function
+```
 
 ## lesson-34
 Sockets - Write
+When an incoming connection is accepted by our socket, a new file descriptor identifying the incoming socket connection is returned in RAX. In this lesson we will use this file descriptor to send our response to the connection.
+
+We will use the kernel function sys_write to write to the incoming socket connection. As our socket will be communicating using the HTTP protocol, we will need to send some compulsory headers in order to allow HTTP speaking clients to connect. We will send these following the formatting rules set out in the RFC Standard.
+
+sys_write expects 3 arguments - the number of bytes to write in RDX, the response string to write in RSI and the file descriptor in RDI. The sys_write opcode is then loaded into RAX and the kernel is called to send our response back through our socket to the incoming connection.
+
+Note: We will create a variable in the .data section to store the response we will write to the file descriptor. See Lesson 1 for more information on the .data section.
+
+Note: Run the program and use the command curl http://localhost:9001 in another terminal to view the response sent via our socket. Or connect to the same address using any standard web browser. 
+```
+; Socket
+; Compile with: nasm -f elf64 socket.asm
+; Link with: ld -m elf_x86_64 socket.o -o socket
+; Run with: ./socket
+ 
+%include    'functions.asm'
+
+SECTION .data
+; our response string
+response db 'HTTP/1.1 200 OK', 0Dh, 0Ah, 'Content-Type: text/html', 0Dh, 0Ah, 'Content-Length: 14', 0Dh, 0Ah, 0Dh, 0Ah, 'Hello World!', 0Dh, 0Ah, 0h
+
+SECTION .bss
+buffer resb 255,                ; variable to store request headers
+
+SECTION .text
+global  _start
+ 
+_start:
+ 
+    xor     rax, rax            ; initialize some registers
+    xor     rdx, rdx
+    xor     rdi, rdi
+    xor     rsi, rsi
+ 
+_socket:
+ 
+    mov     rdi, 2              ; create socket from lesson 29
+    mov     rsi, 1
+    mov     rdx, 0
+    mov     rax, 41
+    syscall
+
+_bind:
+ 
+    mov     rdi, rax            ; bind socket from lesson 30
+    push    dword 0x00000000
+    push    word 0x2923
+    push    word 2
+    mov     r9, rdi
+    mov     rsi,rsp
+    add     rdx, 16
+    mov     rax, 49
+    syscall
+
+_listen:
+    mov     rsi, 4              ; listen socket from lesson 31
+    mov     rax, 50
+    syscall
+
+_accept:
+    xor     rsi, rsi            ; listen socket from lesson 32
+    mov     rdi, r9
+    mov     rdx, rsi
+    mov     rax, 43
+    syscall
+
+_fork:
+ 
+    mov     rdi, rax		; listen socket from lesson 33
+    mov     rax, 57
+    syscall
+ 
+    cmp     rax, 0
+    jz      _read
+ 
+    jmp     _accept
+ 
+_read:
+    mov     rdx, 255            ; listen socket from lesson 33
+    mov     rsi, buffer
+    mov     rax, 0
+    syscall
+ 
+    mov     rax, buffer
+    call    sprintLF
+
+_write:
+ 
+    mov     rdx, 78             ; move 78 dec into rdx (length in bytes to write)
+    mov     rsi, response       ; move address of our response variable into rsi
+    mov     rax, 1              ; invoke SYS_WRITE (kernel opcode 1)
+    syscall                     ; call the kernel
+    
+_exit:
+ 
+    call    quit                ; call our quit function
+```
 
 ## lesson-35
 Sockets - Close
+In this lesson we will use sys_close to properly close the active socket connection in the child process after our response has been sent. This will free up some resources that can be used to accept new incoming connections.
+
+sys_close expects 1 argument - the file descriptor in RDI. The sys_close opcode is then loaded into RAX and the kernel is called to close the socket and remove the active file descriptor. fork code already put RAX in RDI, so we don't need to specify it in our close function. 
+
+Note: Run the program and use the command curl http://localhost:9001 in another terminal or connect to the same address using any standard web browser. 
 
 socket.asm
 ```
@@ -2332,8 +2533,8 @@ _bind:
     push    dword 0x00000000
     push    word 0x2923
     push    word 2
-    mov     r9, rdi             ; store rdi in r9 to save parent file descriptor
-    mov     rsi,rsp              ; store rsp in rsi
+    mov     r9, rdi
+    mov     rsi,rsp
     add     rdx, 16
     mov     rax, 49
     syscall
@@ -2344,46 +2545,41 @@ _listen:
     syscall
 
 _accept:
-    xor     rsi, rsi            ; clear rsi
-    mov     rdi, r9             ; r9 which has parent fd put into rdi. prevents fork loop error
-    mov     rdx, rsi            ; accept socket from lesson 32
+    xor     rsi, rsi            ; listen socket from lesson 32
+    mov     rdi, r9
+    mov     rdx, rsi
     mov     rax, 43
     syscall
-    ;mov     rdi, rax            ; move client fd into rdi
 
 _fork:
  
-    mov     rdi, rax            ; move return value of SYS_SOCKET into rdi (file descriptor for accepted socket, or -1 on error)
-    mov     rax, 57             ; invoke SYS_FORK (kernel opcode 57)
-    syscall                     ; call the kernel
+    mov     rdi, rax		; listen socket from lesson 33
+    mov     rax, 57
+    syscall
  
-    cmp     rax, 0              ; if return value of SYS_FORK in rax is zero we are in the child process
-    jz      _read               ; jmp in child process to _read
+    cmp     rax, 0
+    jz      _read
  
-    jmp     _accept          ; jmp in parent process to _accept
+    jmp     _accept
  
 _read:
-    ;mov     rdi, rax
-    mov     rdx, 255            ; number of bytes to read (we will only read the first 255 bytes for simplicity)
-    mov     rsi, buffer         ; move the memory address of our buffer variable into rsi
-    mov     rax, 0              ; invoke SYS_READ (kernel opcode 0)
-    syscall                     ; call the kernel
+    mov     rdx, 255            ; listen socket from lesson 33
+    mov     rsi, buffer
+    mov     rax, 0
+    syscall
  
-    mov     rax, buffer         ; move the memory address of our buffer variable into rax for printing
-    call    sprintLF            ; call our string printing function
+    mov     rax, buffer
+    call    sprintLF
 
 _write:
  
-    mov     rdx, 78             ; move 78 dec into edx (length in bytes to write)
-    mov     rsi, response       ; move address of our response variable into ecx
-    ;mov     rdi, esi            ; move file descriptor into ebx (accepted socket id)
-    mov     rax, 1              ; invoke SYS_WRITE (kernel opcode 1)
-    syscall                 ; call the kernel
+    mov     rdx, 78             ; listen socket from lesson 34
+    mov     rsi, response
+    mov     rax, 1
+    syscall 
 
 _close:
- 
-    ;mov     rdi, esi            ; move esi into ebx (accepted socket file descriptor)
-    mov     rax, 3              ; invoke SYS_CLOSE (kernel opcode 3)
+    mov     rax, 3          ; invoke SYS_CLOSE (kernel opcode 3)
     syscall                 ; call the kernel
 
 _exit:
