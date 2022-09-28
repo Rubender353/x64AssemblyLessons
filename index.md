@@ -2589,22 +2589,113 @@ _exit:
 ## lesson-36
 Download a Webpage
 
+In the previous lessons we have been learning how to use the many kernel syscalls related to socket programming, to create, manage and transfer data through Linux sockets. We will continue that theme in this lesson by using the SYS_CONNECT (kernel opcode 42) to connect to a remote webserver and download a webpage.
+
+These are the steps we need to follow to connect a socket to a remote server:
+
+   - Call SYS_SOCKET syscall to create an active socket that we will use to send outbound requests.
+   - Call SYS_CONNECT syscall to connect our socket with a socket on the remote webserver.
+   - Use SYS_WRITE to send a HTTP formatted request through our socket to the remote webserver.
+   - Use SYS_READ to recieve the HTTP formatted response from the webserver.
+
+We will then use our string printing function to print the response to our terminal.
+
+What is a HTTP Request
+
+The HTTP specification has evolved through a number of standard versions including 1.0 in RFC1945, 1.1 in RFC2068 and 2.0 in RFC7540. Version 1.1 is still the most common today.
+
+A HTTP/1.1 request is comprised of 3 sections:
+
+    1. A line containing the request method, request url, and http version
+    2. An optional section of request headers
+    3. An empty line that tells the remote server you have finished sending the request and you will begin waiting for the response.
+
+A typical HTTP request for the root document on this server would look like this:
 ```
-markdown
-Syntax highlighted code block
+GET / HTTP/1.1                  ; A line containing the request method, url and version
+Host: asmtutor.com              ; A section of request headers
+                                ; A required empty line
 
-# Header 1
-## Header 2
-### Header 3
+```	
+Writing our program
 
-- Bulleted
-- List
+This tutorial starts out like the previous ones by calling SYS_SOCKET to initially create our socket. However, instead of calling 'bind' on this socket we will call 'connect' syscall with an IP Address and Port Number to connect our socket to a remote webserver. We will then use the SYS_WRITE and SYS_READ kernel methods to transfer data between the two sockets by sending a HTTP request and reading the HTTP response.
 
-1. Numbered
-2. List
+SYS_CONNECT syscall expects 3 arguments - The length in RDX, a pointer to an array of arguments in RSI, and the file descriptor in RDI. The SYS_CONNECT opcode is then loaded into RAX and the kernel is called to connect to the socket.
 
-**Bold** and _Italic_ and `Code` text
+Note: In Linux we can use the following command ./crawler > index.html to save the output of our program to a file instead.  
+crawler.asm
+```
+; Crawler
+; Compile with: nasm -f elf64 crawler.asm
+; Link with: ld -m elf_x86_64 crawler.o -o crawler
+; Run with: ./crawler
+ 
+%include    'functions.asm'
+ 
+SECTION .data
+; our request string
+request db 'GET / HTTP/1.1', 0Dh, 0Ah, 'Host:142.250.217.110:80', 0Dh, 0Ah, 0Dh, 0Ah, 0h
+ 
+SECTION .bss
+buffer resb 1,                  ; variable to store response
+ 
+SECTION .text
+global  _start
+ 
+_start:
+ 
+    xor     rax, rax            ; initialize some registers
+    xor     rdx, rdx
+    xor     rdi, rdi
+    xor     rsi, rsi
+ 
+_socket:
+ 
+    mov     rdi, 2              ; create socket from lesson 29
+    mov     rsi, 1
+    mov     rdx, 0
+    mov     rax, 41
+    syscall
 
-[Link](url) and ![Image](src)
+_connect:
+ 
+    mov     rdi, rax            ; move return value rax (file descriptor) of SYS_SOCKET into rdi
+    push    dword 0x6ed9fa8e    ; push 142.250.217.110 onto the stack IP ADDRESS (reverse byte order)
+    push    word 0x5000         ; push 80 onto stack PORT (reverse byte order)
+    push    word 2              ; push 2 dec onto stack AF_INET
+ 
+    mov     rsi,rsp             ; move address of arguments into rsi
+    add     rdx, 16             ; push 16 dec onto stack (arguments length)
+    mov     rax, 42             ; invoke SYS_CONNECT(kernel opcode 42)
+    syscall                     ; call the kernel
+ 
+_write:
+ 
+    mov     rdx, 43             ; move 43 dec into rdx (length in bytes to write)
+    mov     rsi, request        ; move address of our request variable into rsi
+    mov     rax, 1              ; invoke SYS_WRITE (kernel opcode 1)
+    syscall                     ; call the kernel 
+                
+_read:
+    mov     rdx, 1              ; number of bytes to read (we will read 1 byte at a time)
+    mov     rsi, buffer         ; move the memory address of our buffer variable into rsi
+    mov     rax, 0              ; invoke SYS_READ (kernel opcode 0)
+    syscall                     ; call the kernel
+ 
+    cmp     rax, 0              ; if return value of SYS_READ in rax is zero, we have reached the end of the file
+    jz      _close              ; jmp to _close if we have reached the end of the file (zero flag set)
+ 
+    mov     rax, buffer         ; move the memory address of our buffer variable into rax for printing
+    call    sprint              ; call our string printing function
+    jmp     _read               ; jmp to _read 
+
+_close:
+    mov     rax, 3              ; invoke SYS_CLOSE (kernel opcode 3)
+    syscall                     ; call the kernel
+
+_exit:
+ 
+    call    quit                ; call our quit function
 ```
 
