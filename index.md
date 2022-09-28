@@ -2587,7 +2587,7 @@ _exit:
     call    quit                ; call our quit function
 ```
 ## lesson-36
-Download a Webpage
+### Download a Webpage
 
 In the previous lessons we have been learning how to use the many kernel syscalls related to socket programming, to create, manage and transfer data through Linux sockets. We will continue that theme in this lesson by using the SYS_CONNECT (kernel opcode 42) to connect to a remote webserver and download a webpage.
 
@@ -2600,7 +2600,7 @@ These are the steps we need to follow to connect a socket to a remote server:
 
 We will then use our string printing function to print the response to our terminal.
 
-What is a HTTP Request
+### What is a HTTP Request
 
 The HTTP specification has evolved through a number of standard versions including 1.0 in RFC1945, 1.1 in RFC2068 and 2.0 in RFC7540. Version 1.1 is still the most common today.
 
@@ -2617,7 +2617,7 @@ Host: asmtutor.com              ; A section of request headers
                                 ; A required empty line
 
 ```	
-Writing our program
+### Writing our program
 
 This tutorial starts out like the previous ones by calling SYS_SOCKET to initially create our socket. However, instead of calling 'bind' on this socket we will call 'connect' syscall with an IP Address and Port Number to connect our socket to a remote webserver. We will then use the SYS_WRITE and SYS_READ kernel methods to transfer data between the two sockets by sending a HTTP request and reading the HTTP response.
 
