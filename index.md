@@ -2486,7 +2486,8 @@ _exit:
 ```
 
 ## lesson-35
-Sockets - Close
+### Sockets - Close
+
 In this lesson we will use sys_close to properly close the active socket connection in the child process after our response has been sent. This will free up some resources that can be used to accept new incoming connections.
 
 sys_close expects 1 argument - the file descriptor in RDI. The sys_close opcode is then loaded into RAX and the kernel is called to close the socket and remove the active file descriptor. fork code already put RAX in RDI, so we don't need to specify it in our close function. 
@@ -2587,6 +2588,7 @@ _exit:
     call    quit                ; call our quit function
 ```
 ## lesson-36
+
 ### Download a Webpage
 
 In the previous lessons we have been learning how to use the many kernel syscalls related to socket programming, to create, manage and transfer data through Linux sockets. We will continue that theme in this lesson by using the SYS_CONNECT (kernel opcode 42) to connect to a remote webserver and download a webpage.
